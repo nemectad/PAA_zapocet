@@ -28,12 +28,11 @@ void update_u(double **u, double ***K, int Nx, int Ny) {
 }
 
 void Merson(double **u, double *x, double *y, int Nx, int Ny, double dt, 
-            double T, double delta) {
+            double T, double delta, std::string filename) {
     double t, tau, eps, E, omega;
     bool last = false;
     tau = dt;
     std::ofstream f;
-    std::string filename = "data.txt";
     omega = 0.8;
     t = 0.0;
     

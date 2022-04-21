@@ -8,5 +8,5 @@ all:
 
 .PHONY : clean
 clean:
-	-rm main *.o *.gch
+	-rm main *.o
 	-rm -r main.dSYM

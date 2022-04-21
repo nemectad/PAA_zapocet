@@ -1,4 +1,6 @@
-f = fopen("data.txt");
+filename = input("Enter the name of the data file: ", "s");
+
+f = fopen(filename);
 line = textscan(fgetl(f), "%f %f");
 Nx = line{1};
 Ny = line{2};
