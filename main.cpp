@@ -3,6 +3,8 @@
 #include "utilities.h"
 #include "math.h"
 
+#define TEST
+
 void init_u(double **u, double *x, double *y, int Nx, int Ny) {
     for (int i = 0; i <= Nx; i++) {
         for (int j = 0; j <= Ny; j++) {
@@ -63,20 +65,14 @@ int main(int argc, char** argv) {
 
 
     // Spatial grid
-    //int Nx = 50;
-    //int Ny = 50;
     double *x = new double[Nx+1];
     double *y = new double[Ny+1];
-    //double a = -1;
-    //double b = 1;
+
+    // Error treshold
     double delta = 0.0001;
 
     set_grid(x, a, b, Nx);
     set_grid(y, a, b, Ny);
-
-    // Temporal grid
-    //double T_max = 0.5;
-    //double dt = 0.1;
 
     // Solution grid - pointer array for column representation of solution u
     double **u = new double*[Nx+1];
@@ -89,6 +85,33 @@ int main(int argc, char** argv) {
     
     // Solve the system for the given parameters
     Merson(u, x, y, Nx, Ny, dt, T_max, delta, filename);
+
+
+    // Comparison with the analytical model
+    #ifdef TEST
+
+    // Computation variables
+    int N = 10;
+    double *t = new double[N+1];
+    init_u(u, x, y, Nx, Ny);
+
+    // Write initial data
+    std::ofstream test_f;
+    std::string test_filename = std::string("test_") + filename;
+    test_f.open(test_filename, std::ios_base::app);
+    test_f << Nx << "\t" << Ny << "\n";
+    test_f.close();
+    write_data(u, t[0], x, y, Nx, Ny, test_filename, &test_f);
+
+    // Main computation cycle
+    for (int i = 1; i <= N; i++) {
+        t[i] = t[i-1] + T_max/N;
+        convolution_in_t(Nx, Ny, x, y, u, t[i]);
+        write_data(u, t[i], x, y, Nx, Ny, test_filename, &test_f);
+    }
+    delete[] t;
+    #endif
+
 
     // Delete grid
     delete[] x;

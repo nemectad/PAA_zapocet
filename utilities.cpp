@@ -26,6 +26,10 @@ int signum(double x) {
     return ((0 < x) - (x < 0));
 }
 
+double Gauss(double x, double y, double t) {
+    return exp(-(x*x + y*y)/(4*t))/(4*t*M_PI);
+}
+
 double max_in_mtrx(double ***K, int Nx, int Ny) {
     double max = 0;
     double err;

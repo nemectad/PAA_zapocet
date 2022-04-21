@@ -142,3 +142,24 @@ void Merson(double **u, double *x, double *y, int Nx, int Ny, double dt,
     K = nullptr;
     
 }
+
+void convolution_in_t(int Nx, int Ny, double *x, double *y, double **u, double t) {
+    for (int i = 0; i <= Nx; i++) {
+        for (int j = 0; j <= Ny; j++) {
+            u[i][j] = convolve(Nx, Ny, x, y, t, x[i], y[j]);
+        }
+    }
+}
+
+double convolve(int Nx, int Ny, double *x, double *y, double t, double m, double n) {
+    double conv = 0;
+    double dx = x[1]-x[0];
+    double dy = y[1]-y[0];
+
+    for (int i = 0; i <= Nx; i++) {
+        for (int j = 0; j <= Ny; j++) {
+            conv += Gauss(m-x[i], n-y[i], t)*signum(-sqrt(x[i]*x[i] + y[j]*y[j]) + 0.1)*dx*dy;
+        }
+    }
+    return conv;
+}
