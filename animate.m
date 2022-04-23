@@ -16,5 +16,5 @@ pause
 while (! feof (f) )
     [t, X, Y, u] = sol(f, Nx, Ny);
     mesh(X, Y, u);
-    pause(0.01)
+    pause(0.1)
 end

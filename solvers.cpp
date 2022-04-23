@@ -139,14 +139,20 @@ void Merson(double **u, double *x, double *y, int Nx, int Ny, double dt,
         dealloc(K[i], Nx);
     }
     delete[] K;
-    K = nullptr;
+
     
 }
 
 void convolution_in_t(int Nx, int Ny, double *x, double *y, double **u, double t) {
     for (int i = 0; i <= Nx; i++) {
         for (int j = 0; j <= Ny; j++) {
+            /*if (i == 0 || j == 0 || i == Nx || j == Ny) {
+                u[i][j] = 0;
+            }
+            else*/
             u[i][j] = convolve(Nx, Ny, x, y, t, x[i], y[j]);
+            
+        
         }
     }
 }
@@ -158,7 +164,12 @@ double convolve(int Nx, int Ny, double *x, double *y, double t, double m, double
 
     for (int i = 0; i <= Nx; i++) {
         for (int j = 0; j <= Ny; j++) {
-            conv += Gauss(m-x[i], n-y[i], t)*signum(-sqrt(x[i]*x[i] + y[j]*y[j]) + 0.1)*dx*dy;
+            /*if (i == 0 || j == 0 || i == Nx || j == Ny) {
+                conv = conv;
+            }
+            else
+            */
+            conv += Gauss(m-x[i], n-y[j], t)*(signum(-sqrt(x[i]*x[i] + y[j]*y[j]) + 0.1)+1)*dx*dy;
         }
     }
     return conv;

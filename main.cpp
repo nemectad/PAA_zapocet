@@ -8,7 +8,7 @@
 void init_u(double **u, double *x, double *y, int Nx, int Ny) {
     for (int i = 0; i <= Nx; i++) {
         for (int j = 0; j <= Ny; j++) {
-            u[i][j] = signum(-sqrt(x[i]*x[i] + y[j]*y[j]) + 0.1);
+            u[i][j] = signum(-sqrt(x[i]*x[i] + y[j]*y[j]) + 0.1)+1;
         }
     }
 }
