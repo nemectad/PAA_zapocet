@@ -3,6 +3,7 @@
 #include <cmath>
 
 
+
 double Laplace_u(double **u, int i, int j, double *x, double *y) {
     double dx = x[1]-x[0];
     double dy = y[1]-y[0];
@@ -12,7 +13,7 @@ double Laplace_u(double **u, int i, int j, double *x, double *y) {
 
 double F(double **u, int i, int j, double *x, double *y, int Nx, int Ny) {
     // Boundary condition
-    if (i == 0 || j == 0 || i == Nx || j == Ny) {
+    if (i == 0 || j == 0 || i == Nx-1 || j == Ny-1) {
         return 0;
     }
     // Laplace
@@ -20,14 +21,14 @@ double F(double **u, int i, int j, double *x, double *y, int Nx, int Ny) {
 }
 
 void update_u(double **u, double ***K, int Nx, int Ny) {
-    for (int i = 0; i <= Nx; i++) {
-        for (int j = 0; j <= Ny; j++) {
+    for (int i = 0; i < Nx; i++) {
+        for (int j = 0; j < Ny; j++) {
             u[i][j] = u[i][j] + (K[0][i][j] + 4*K[3][i][j] + K[4][i][j])/6;
         }
     }
 }
 
-void Merson(double **u, double *x, double *y, int Nx, int Ny, double dt, 
+void Merson(int argc, char** argv, double **u, double *x, double *y, int Nx, int Ny, double dt, 
             double T, double delta, std::string filename) {
     double t, tau, eps, E, omega;
     bool last = false;
@@ -36,16 +37,16 @@ void Merson(double **u, double *x, double *y, int Nx, int Ny, double dt,
     omega = 0.8;
     t = 0.0;
     
-    double **lap_u = new double*[Nx+1];
-    double **lap_k1 = new double*[Nx+1];
-    double **lap_k2 = new double*[Nx+1];
-    double **lap_k3 = new double*[Nx+1];
-    double **lap_k4 = new double*[Nx+1];
-    double **lap_k5 = new double*[Nx+1];
+    double **lap_u = new double*[Nx];
+    double **lap_k1 = new double*[Nx];
+    double **lap_k2 = new double*[Nx];
+    double **lap_k3 = new double*[Nx];
+    double **lap_k4 = new double*[Nx];
+    double **lap_k5 = new double*[Nx];
     double ***K = new double**[5];
-    // K matrix initialization - (5)*(Nx+1)*(Ny+1) array
+    // K matrix initialization - (5)*(Nx)*(Ny) array
     for (int i = 0; i < 5; i++) {
-        K[i] = new double*[Nx+1];
+        K[i] = new double*[Nx];
         alloc(K[i], Nx, Ny);
     }
 
@@ -69,46 +70,57 @@ void Merson(double **u, double *x, double *y, int Nx, int Ny, double dt,
             last = true;
         }
 
+        //int nproc, iproc;
+        /*
+        MPI_Init(&argc, &argv);
+        MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+        MPI_Comm_rank(MPI_COMM_WORLD, &iproc);
+        */
         /*
         In this part we exploit the linearity of the laplacian. 
         We can therefore apply the function F (i.e. laplacian) and then add up all
         the terms correspondingly. 
         */ 
-        for (int i = 0; i <= Nx; i++) {
-            for (int j = 0; j <= Ny; j++) {  
+
+        // Sem by mel prijit broadcast/scatter hodnoty u, gather K, pak broadcast/scatter K[0] apod.
+
+        for (int i = 0; i < Nx; i++) {
+            for (int j = 0; j < Ny; j++) {  
                 lap_u[i][j] = F(u, i, j, x, y, Nx, Ny);         
                 K[0][i][j] = tau*lap_u[i][j];
             }
         }
 
-        for (int i = 0; i <= Nx; i++) {
-            for (int j = 0; j <= Ny; j++) {  
+        for (int i = 0; i < Nx; i++) {
+            for (int j = 0; j < Ny; j++) {  
                 lap_k1[i][j] = F(K[0], i, j, x, y, Nx, Ny);
                 K[1][i][j] = tau*(lap_u[i][j] + lap_k1[i][j]/3);
             }
         }
 
-        for (int i = 0; i <= Nx; i++) {
-            for (int j = 0; j <= Ny; j++) {  
+        for (int i = 0; i < Nx; i++) {
+            for (int j = 0; j < Ny; j++) {  
                 lap_k2[i][j] = F(K[1], i, j, x, y, Nx, Ny);
                 K[2][i][j] = tau*(lap_u[i][j] + (lap_k1[i][j] + lap_k2[i][j])/6);
             }
         }
 
-        for (int i = 0; i <= Nx; i++) {
-            for (int j = 0; j <= Ny; j++) {  
+        for (int i = 0; i < Nx; i++) {
+            for (int j = 0; j < Ny; j++) {  
                 lap_k3[i][j] = F(K[2], i, j, x, y, Nx, Ny);
                 K[3][i][j] = tau*(lap_u[i][j] + (lap_k1[i][j] + 3*lap_k3[i][j])/8);
             }
         }
 
-        for (int i = 0; i <= Nx; i++) {
-            for (int j = 0; j <= Ny; j++) {  
+        for (int i = 0; i < Nx; i++) {
+            for (int j = 0; j < Ny; j++) {  
                 lap_k4[i][j] = F(K[3], i, j, x, y, Nx, Ny);
                 K[4][i][j] = tau*(lap_u[i][j] + 0.5*lap_k1[i][j] - 1.5*lap_k3[i][j] +
                              2*lap_k4[i][j]);
             }
         }
+
+       // MPI_Finalize();
 
         // Compute errors
         E = max_in_mtrx(K, Nx, Ny);
@@ -144,8 +156,8 @@ void Merson(double **u, double *x, double *y, int Nx, int Ny, double dt,
 }
 
 void convolution_in_t(int Nx, int Ny, double *x, double *y, double **u, double t) {
-    for (int i = 0; i <= Nx; i++) {
-        for (int j = 0; j <= Ny; j++) {
+    for (int i = 0; i < Nx; i++) {
+        for (int j = 0; j < Ny; j++) {
             /*if (i == 0 || j == 0 || i == Nx || j == Ny) {
                 u[i][j] = 0;
             }
@@ -162,8 +174,8 @@ double convolve(int Nx, int Ny, double *x, double *y, double t, double m, double
     double dx = x[1]-x[0];
     double dy = y[1]-y[0];
 
-    for (int i = 0; i <= Nx; i++) {
-        for (int j = 0; j <= Ny; j++) {
+    for (int i = 0; i < Nx; i++) {
+        for (int j = 0; j < Ny; j++) {
             /*if (i == 0 || j == 0 || i == Nx || j == Ny) {
                 conv = conv;
             }

@@ -1,3 +1,4 @@
+//#include <mpi.h>
 #include <iostream>
 #include "solvers.h"
 #include "utilities.h"
@@ -5,17 +6,19 @@
 #include <stdlib.h>
 #include <fstream>
 
-#define TEST
+
+//#define TEST
 
 void init_u(double **u, double *x, double *y, int Nx, int Ny) {
-    for (int i = 0; i <= Nx; i++) {
-        for (int j = 0; j <= Ny; j++) {
+    for (int i = 0; i < Nx; i++) {
+        for (int j = 0; j < Ny; j++) {
             u[i][j] = signum(-sqrt(x[i]*x[i] + y[j]*y[j]) + 0.1)+1;
         }
     }
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char* argv[]) {
+
     // Filename
     std::string filename;
 
@@ -29,15 +32,16 @@ int main(int argc, char** argv) {
     // If no argument or too little arguments given, the default values 
     // will be set.
 
-    if (argc < 8) {
-        a = -1;
-        b = 1;
-        Nx = 50;
-        Ny = 50;
-        dt = 0.1;
-        T_max = 0.5;
-        filename = "data.txt";
-    } else {
+    
+    //if (argc < 8) {
+    a = -1;
+    b = 1;
+    Nx = 50;
+    Ny = 50;
+    dt = 0.1;
+    T_max = 0.5;
+    filename = "data.txt";
+    /*} else {
         Nx = atoi(argv[1]);
         Ny = atoi(argv[2]);
         a = atof(argv[3]);
@@ -64,11 +68,12 @@ int main(int argc, char** argv) {
         }
         
     }
+    */
 
 
     // Spatial grid
-    double *x = new double[Nx+1];
-    double *y = new double[Ny+1];
+    double *x = new double[Nx];
+    double *y = new double[Ny];
 
     // Error treshold
     double delta = 0.0001;
@@ -77,7 +82,7 @@ int main(int argc, char** argv) {
     set_grid(y, a, b, Ny);
 
     // Solution grid - pointer array for column representation of solution u
-    double **u = new double*[Nx+1];
+    double **u = new double*[Nx];
 
     // Allocate u dynamically according to the grid size
     alloc(u, Nx, Ny);
@@ -86,7 +91,7 @@ int main(int argc, char** argv) {
     init_u(u, x, y, Nx, Ny);
     
     // Solve the system for the given parameters
-    Merson(u, x, y, Nx, Ny, dt, T_max, delta, filename);
+    Merson(argc, argv, u, x, y, Nx, Ny, dt, T_max, delta, filename);
 
 
     // Comparison with the analytical model
@@ -122,6 +127,7 @@ int main(int argc, char** argv) {
     //y = nullptr;
     // Delete u - first individual columns, rows after
     dealloc(u, Nx);
+
 
     return 0;
 }

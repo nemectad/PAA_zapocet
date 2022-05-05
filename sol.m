@@ -2,12 +2,12 @@ function [t, X, Y, u] = sol(f, Nx, Ny)
     % Time
     t = textscan(fgetl(f), "%f"){1};
     % Meshgrid allocation
-    X = zeros(Nx+1, Ny+1);
-    Y = zeros(Nx+1, Ny+1);
+    X = zeros(Nx, Ny);
+    Y = zeros(Nx, Ny);
     % Solution allocation
-    u = zeros(Nx+1, Ny+1);
-    for i = 1:Nx+1
-        for j = 1:Ny+1
+    u = zeros(Nx, Ny);
+    for i = 1:(Nx)
+        for j = 1:(Ny)
             line = textscan(fgetl(f), "%f %f %f");
             % Generate meshgrid for surface plot
             X(i, j) = line{1};
