@@ -1,6 +1,6 @@
 #include "solvers.h"
 #include "utilities.h"
-#include <math.h>
+#include <cmath>
 
 
 double Laplace_u(double **u, int i, int j, double *x, double *y) {
@@ -57,14 +57,14 @@ void Merson(double **u, double *x, double *y, int Nx, int Ny, double dt,
     alloc(lap_k5, Nx, Ny);
 
     // Write initial data:
-    f.open(filename, std::ios_base::app);
+    f.open(filename, std::ios::out | std::ios_base::app);
     f << Nx << "\t" << Ny << "\n";
     f.close();
     write_data(u, t, x, y, Nx, Ny, filename, &f);
 
     // Main loop
     while(1) {
-        if (abs(T-t) < abs(tau)) {
+        if (std::abs(T-t) < std::abs(tau)) {
             tau = T - t;
             last = true;
         }

@@ -1,0 +1,278 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls   s/call   s/call  name    
+ 33.47      1.05     1.05 67652010     0.00     0.00  Gauss(double, double, double)
+ 22.95      1.77     0.72    26010     0.00     0.00  convolve(int, int, double*, double*, double, double, double)
+ 21.99      2.46     0.69  9820090     0.00     0.00  Laplace_u(double**, int, int, double*, double*)
+  6.69      2.67     0.21        1     0.21     1.20  Merson(double**, double*, double*, int, int, double, double, double, std::string)
+  5.26      2.84     0.17 67657212     0.00     0.00  signum(double)
+  3.67      2.95     0.12 10638090     0.00     0.00  F(double**, int, int, double*, double*, int, int)
+  3.19      3.05     0.10      818     0.00     0.00  max_in_mtrx(double***, int, int)
+  1.27      3.09     0.04      705     0.00     0.00  write_data(double**, double, double*, double*, int, int, std::string, std::basic_ofstream<char, std::char_traits<char> >*)
+  0.64      3.11     0.02      693     0.00     0.00  update_u(double**, double***, int, int)
+  0.48      3.13     0.02       12     0.00     0.00  dealloc(double**, int)
+  0.32      3.14     0.01  2129254     0.00     0.00  std::abs(double)
+  0.16      3.14     0.01        1     0.01     0.01  std::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(std::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, std::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+  0.00      3.14     0.00      707     0.00     0.00  std::operator|(std::_Ios_Openmode, std::_Ios_Openmode)
+  0.00      3.14     0.00       12     0.00     0.00  alloc(double**, int, int)
+  0.00      3.14     0.00       10     0.00     0.19  convolution_in_t(int, int, double*, double*, double**, double)
+  0.00      3.14     0.00        2     0.00     0.00  init_u(double**, double*, double*, int, int)
+  0.00      3.14     0.00        2     0.00     0.00  set_grid(double*, double, double, int)
+  0.00      3.14     0.00        1     0.00     0.00  _GLOBAL__sub_I__Z6init_uPPdS_S_ii
+  0.00      3.14     0.00        1     0.00     0.00  _GLOBAL__sub_I__Z8set_gridPdddi
+  0.00      3.14     0.00        1     0.00     0.00  _GLOBAL__sub_I__Z9Laplace_uPPdiiS_S_
+  0.00      3.14     0.00        1     0.00     0.00  __static_initialization_and_destruction_0(int, int)
+  0.00      3.14     0.00        1     0.00     0.00  __static_initialization_and_destruction_0(int, int)
+  0.00      3.14     0.00        1     0.00     0.00  __static_initialization_and_destruction_0(int, int)
+  0.00      3.14     0.00        1     0.00     0.00  std::remove_reference<std::string&>::type&& std::move<std::string&>(std::string&)
+
+ %         the percentage of the total running time of the
+time       program used by this function.
+
+cumulative a running sum of the number of seconds accounted
+ seconds   for by this function and those listed above it.
+
+ self      the number of seconds accounted for by this
+seconds    function alone.  This is the major sort for this
+           listing.
+
+calls      the number of times this function was invoked, if
+           this function is profiled, else blank.
+
+ self      the average number of milliseconds spent in this
+ms/call    function per call, if this function is profiled,
+	   else blank.
+
+ total     the average number of milliseconds spent in this
+ms/call    function and its descendents per call, if this
+	   function is profiled, else blank.
+
+name       the name of the function.  This is the minor sort
+           for this listing. The index shows the location of
+	   the function in the gprof listing. If the index is
+	   in parenthesis it shows where it would appear in
+	   the gprof listing if it were to be printed.
+
+Copyright (C) 2012-2016 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+		     Call graph (explanation follows)
+
+
+granularity: each sample hit covers 2 byte(s) for 0.32% of 3.14 seconds
+
+index % time    self  children    called     name
+                                                 <spontaneous>
+[1]    100.0    0.00    3.14                 main [1]
+                0.00    1.94      10/10          convolution_in_t(int, int, double*, double*, double**, double) [3]
+                0.21    0.99       1/1           Merson(double**, double*, double*, int, int, double, double, double, std::string) [4]
+                0.01    0.00       1/1           std::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(std::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, std::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [14]
+                0.00    0.00       1/12          dealloc(double**, int) [12]
+                0.00    0.00      11/705         write_data(double**, double, double*, double*, int, int, std::string, std::basic_ofstream<char, std::char_traits<char> >*) [10]
+                0.00    0.00       2/2           init_u(double**, double*, double*, int, int) [15]
+                0.00    0.00       2/2           set_grid(double*, double, double, int) [24]
+                0.00    0.00       1/12          alloc(double**, int, int) [23]
+                0.00    0.00       1/707         std::operator|(std::_Ios_Openmode, std::_Ios_Openmode) [22]
+-----------------------------------------------
+                0.72    1.22   26010/26010       convolution_in_t(int, int, double*, double*, double**, double) [3]
+[2]     61.6    0.72    1.22   26010         convolve(int, int, double*, double*, double, double, double) [2]
+                1.05    0.00 67652010/67652010     Gauss(double, double, double) [5]
+                0.17    0.00 67652010/67657212     signum(double) [8]
+-----------------------------------------------
+                0.00    1.94      10/10          main [1]
+[3]     61.6    0.00    1.94      10         convolution_in_t(int, int, double*, double*, double**, double) [3]
+                0.72    1.22   26010/26010       convolve(int, int, double*, double*, double, double, double) [2]
+-----------------------------------------------
+                0.21    0.99       1/1           main [1]
+[4]     38.2    0.21    0.99       1         Merson(double**, double*, double*, int, int, double, double, double, std::string) [4]
+                0.12    0.69 10638090/10638090     F(double**, int, int, double*, double*, int, int) [6]
+                0.10    0.01     818/818         max_in_mtrx(double***, int, int) [9]
+                0.04    0.00     694/705         write_data(double**, double, double*, double*, int, int, std::string, std::basic_ofstream<char, std::char_traits<char> >*) [10]
+                0.02    0.00     693/693         update_u(double**, double***, int, int) [11]
+                0.01    0.00      11/12          dealloc(double**, int) [12]
+                0.00    0.00    1636/2129254     std::abs(double) [13]
+                0.00    0.00      11/12          alloc(double**, int, int) [23]
+                0.00    0.00       1/707         std::operator|(std::_Ios_Openmode, std::_Ios_Openmode) [22]
+-----------------------------------------------
+                1.05    0.00 67652010/67652010     convolve(int, int, double*, double*, double, double, double) [2]
+[5]     33.4    1.05    0.00 67652010         Gauss(double, double, double) [5]
+-----------------------------------------------
+                0.12    0.69 10638090/10638090     Merson(double**, double*, double*, int, int, double, double, double, std::string) [4]
+[6]     25.6    0.12    0.69 10638090         F(double**, int, int, double*, double*, int, int) [6]
+                0.69    0.00 9820090/9820090     Laplace_u(double**, int, int, double*, double*) [7]
+-----------------------------------------------
+                0.69    0.00 9820090/9820090     F(double**, int, int, double*, double*, int, int) [6]
+[7]     22.0    0.69    0.00 9820090         Laplace_u(double**, int, int, double*, double*) [7]
+-----------------------------------------------
+                0.00    0.00    5202/67657212     init_u(double**, double*, double*, int, int) [15]
+                0.17    0.00 67652010/67657212     convolve(int, int, double*, double*, double, double, double) [2]
+[8]      5.3    0.17    0.00 67657212         signum(double) [8]
+-----------------------------------------------
+                0.10    0.01     818/818         Merson(double**, double*, double*, int, int, double, double, double, std::string) [4]
+[9]      3.5    0.10    0.01     818         max_in_mtrx(double***, int, int) [9]
+                0.01    0.00 2127618/2129254     std::abs(double) [13]
+-----------------------------------------------
+                0.00    0.00      11/705         main [1]
+                0.04    0.00     694/705         Merson(double**, double*, double*, int, int, double, double, double, std::string) [4]
+[10]     1.3    0.04    0.00     705         write_data(double**, double, double*, double*, int, int, std::string, std::basic_ofstream<char, std::char_traits<char> >*) [10]
+                0.00    0.00     705/707         std::operator|(std::_Ios_Openmode, std::_Ios_Openmode) [22]
+-----------------------------------------------
+                0.02    0.00     693/693         Merson(double**, double*, double*, int, int, double, double, double, std::string) [4]
+[11]     0.6    0.02    0.00     693         update_u(double**, double***, int, int) [11]
+-----------------------------------------------
+                0.00    0.00       1/12          main [1]
+                0.01    0.00      11/12          Merson(double**, double*, double*, int, int, double, double, double, std::string) [4]
+[12]     0.5    0.02    0.00      12         dealloc(double**, int) [12]
+-----------------------------------------------
+                0.00    0.00    1636/2129254     Merson(double**, double*, double*, int, int, double, double, double, std::string) [4]
+                0.01    0.00 2127618/2129254     max_in_mtrx(double***, int, int) [9]
+[13]     0.3    0.01    0.00 2129254         std::abs(double) [13]
+-----------------------------------------------
+                0.01    0.00       1/1           main [1]
+[14]     0.2    0.01    0.00       1         std::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(std::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, std::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [14]
+                0.00    0.00       1/1           std::remove_reference<std::string&>::type&& std::move<std::string&>(std::string&) [31]
+-----------------------------------------------
+                0.00    0.00       2/2           main [1]
+[15]     0.0    0.00    0.00       2         init_u(double**, double*, double*, int, int) [15]
+                0.00    0.00    5202/67657212     signum(double) [8]
+-----------------------------------------------
+                0.00    0.00       1/707         main [1]
+                0.00    0.00       1/707         Merson(double**, double*, double*, int, int, double, double, double, std::string) [4]
+                0.00    0.00     705/707         write_data(double**, double, double*, double*, int, int, std::string, std::basic_ofstream<char, std::char_traits<char> >*) [10]
+[22]     0.0    0.00    0.00     707         std::operator|(std::_Ios_Openmode, std::_Ios_Openmode) [22]
+-----------------------------------------------
+                0.00    0.00       1/12          main [1]
+                0.00    0.00      11/12          Merson(double**, double*, double*, int, int, double, double, double, std::string) [4]
+[23]     0.0    0.00    0.00      12         alloc(double**, int, int) [23]
+-----------------------------------------------
+                0.00    0.00       2/2           main [1]
+[24]     0.0    0.00    0.00       2         set_grid(double*, double, double, int) [24]
+-----------------------------------------------
+                0.00    0.00       1/1           __libc_csu_init [37]
+[25]     0.0    0.00    0.00       1         _GLOBAL__sub_I__Z6init_uPPdS_S_ii [25]
+                0.00    0.00       1/1           __static_initialization_and_destruction_0(int, int) [28]
+-----------------------------------------------
+                0.00    0.00       1/1           __libc_csu_init [37]
+[26]     0.0    0.00    0.00       1         _GLOBAL__sub_I__Z8set_gridPdddi [26]
+                0.00    0.00       1/1           __static_initialization_and_destruction_0(int, int) [30]
+-----------------------------------------------
+                0.00    0.00       1/1           __libc_csu_init [37]
+[27]     0.0    0.00    0.00       1         _GLOBAL__sub_I__Z9Laplace_uPPdiiS_S_ [27]
+                0.00    0.00       1/1           __static_initialization_and_destruction_0(int, int) [29]
+-----------------------------------------------
+                0.00    0.00       1/1           _GLOBAL__sub_I__Z6init_uPPdS_S_ii [25]
+[28]     0.0    0.00    0.00       1         __static_initialization_and_destruction_0(int, int) [28]
+-----------------------------------------------
+                0.00    0.00       1/1           _GLOBAL__sub_I__Z9Laplace_uPPdiiS_S_ [27]
+[29]     0.0    0.00    0.00       1         __static_initialization_and_destruction_0(int, int) [29]
+-----------------------------------------------
+                0.00    0.00       1/1           _GLOBAL__sub_I__Z8set_gridPdddi [26]
+[30]     0.0    0.00    0.00       1         __static_initialization_and_destruction_0(int, int) [30]
+-----------------------------------------------
+                0.00    0.00       1/1           std::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(std::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, std::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [14]
+[31]     0.0    0.00    0.00       1         std::remove_reference<std::string&>::type&& std::move<std::string&>(std::string&) [31]
+-----------------------------------------------
+
+ This table describes the call tree of the program, and was sorted by
+ the total amount of time spent in each function and its children.
+
+ Each entry in this table consists of several lines.  The line with the
+ index number at the left hand margin lists the current function.
+ The lines above it list the functions that called this function,
+ and the lines below it list the functions this one called.
+ This line lists:
+     index	A unique number given to each element of the table.
+		Index numbers are sorted numerically.
+		The index number is printed next to every function name so
+		it is easier to look up where the function is in the table.
+
+     % time	This is the percentage of the `total' time that was spent
+		in this function and its children.  Note that due to
+		different viewpoints, functions excluded by options, etc,
+		these numbers will NOT add up to 100%.
+
+     self	This is the total amount of time spent in this function.
+
+     children	This is the total amount of time propagated into this
+		function by its children.
+
+     called	This is the number of times the function was called.
+		If the function called itself recursively, the number
+		only includes non-recursive calls, and is followed by
+		a `+' and the number of recursive calls.
+
+     name	The name of the current function.  The index number is
+		printed after it.  If the function is a member of a
+		cycle, the cycle number is printed between the
+		function's name and the index number.
+
+
+ For the function's parents, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the function into this parent.
+
+     children	This is the amount of time that was propagated from
+		the function's children into this parent.
+
+     called	This is the number of times this parent called the
+		function `/' the total number of times the function
+		was called.  Recursive calls to the function are not
+		included in the number after the `/'.
+
+     name	This is the name of the parent.  The parent's index
+		number is printed after it.  If the parent is a
+		member of a cycle, the cycle number is printed between
+		the name and the index number.
+
+ If the parents of the function cannot be determined, the word
+ `<spontaneous>' is printed in the `name' field, and all the other
+ fields are blank.
+
+ For the function's children, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the child into the function.
+
+     children	This is the amount of time that was propagated from the
+		child's children to the function.
+
+     called	This is the number of times the function called
+		this child `/' the total number of times the child
+		was called.  Recursive calls by the child are not
+		listed in the number after the `/'.
+
+     name	This is the name of the child.  The child's index
+		number is printed after it.  If the child is a
+		member of a cycle, the cycle number is printed
+		between the name and the index number.
+
+ If there are any cycles (circles) in the call graph, there is an
+ entry for the cycle-as-a-whole.  This entry shows who called the
+ cycle (as parents) and the members of the cycle (as children.)
+ The `+' recursive calls entry shows the number of function calls that
+ were internal to the cycle, and the calls entry for each member shows,
+ for that member, how many times it was called from other members of
+ the cycle.
+
+Copyright (C) 2012-2016 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+Index by function name
+
+  [25] _GLOBAL__sub_I__Z6init_uPPdS_S_ii (main.cpp) [29] __static_initialization_and_destruction_0(int, int) (solvers.cpp) [2] convolve(int, int, double*, double*, double, double, double)
+  [26] _GLOBAL__sub_I__Z8set_gridPdddi (utilities.cpp) [30] __static_initialization_and_destruction_0(int, int) (utilities.cpp) [24] set_grid(double*, double, double, int)
+  [27] _GLOBAL__sub_I__Z9Laplace_uPPdiiS_S_ (solvers.cpp) [5] Gauss(double, double, double) [11] update_u(double**, double***, int, int)
+  [10] write_data(double**, double, double*, double*, int, int, std::string, std::basic_ofstream<char, std::char_traits<char> >*) [23] alloc(double**, int, int) [7] Laplace_u(double**, int, int, double*, double*)
+   [9] max_in_mtrx(double***, int, int) [4] Merson(double**, double*, double*, int, int, double, double, double, std::string) [13] std::abs(double)
+   [3] convolution_in_t(int, int, double*, double*, double**, double) [15] init_u(double**, double*, double*, int, int) [31] std::remove_reference<std::string&>::type&& std::move<std::string&>(std::string&)
+   [6] F(double**, int, int, double*, double*, int, int) [8] signum(double) [22] std::operator|(std::_Ios_Openmode, std::_Ios_Openmode)
+  [28] __static_initialization_and_destruction_0(int, int) (main.cpp) [12] dealloc(double**, int) [14] std::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(std::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, std::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)

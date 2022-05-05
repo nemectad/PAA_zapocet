@@ -1,7 +1,9 @@
 #include <iostream>
 #include "solvers.h"
 #include "utilities.h"
-#include "math.h"
+#include <cmath>
+#include <stdlib.h>
+#include <fstream>
 
 #define TEST
 
@@ -98,7 +100,7 @@ int main(int argc, char** argv) {
     // Write initial data
     std::ofstream test_f;
     std::string test_filename = std::string("test_") + filename;
-    test_f.open(test_filename, std::ios_base::app);
+    test_f.open(test_filename, std::ios::out | std::ios_base::app);
     test_f << Nx << "\t" << Ny << "\n";
     test_f.close();
     write_data(u, t[0], x, y, Nx, Ny, test_filename, &test_f);
@@ -116,8 +118,8 @@ int main(int argc, char** argv) {
     // Delete grid
     delete[] x;
     delete[] y;
-    x = nullptr;
-    y = nullptr;
+    //x = nullptr;
+    //y = nullptr;
     // Delete u - first individual columns, rows after
     dealloc(u, Nx);
 

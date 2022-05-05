@@ -2,6 +2,8 @@
 #define UTILITIES_H
 #include <fstream>
 #include <iostream>
+#include <stdlib.h>
+#include <cmath>
 
 void set_grid(double *arr, double a, double b, int N);
 void alloc(double **u, int Nx, int Ny);
