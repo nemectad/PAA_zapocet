@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
     init_u(u, x, y, Nx, Ny);
     
     // Solve the system for the given parameters
-    Merson(argc, argv, u, x, y, Nx, Ny, dt, T_max, delta, filename);
+    Merson_parallel(argc, argv, u, x, y, Nx, Ny, dt, T_max, delta, filename);
 
 
     // Comparison with the analytical model

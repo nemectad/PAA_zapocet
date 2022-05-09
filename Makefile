@@ -1,7 +1,7 @@
 # GNU c++ compiler
- CC=g++
+# CC=g++
 # MPI compiler
-#CC=mpic++
+CC=mpic++
 
 # Intel compiler (mainly for profiling)
 # IC=icc
@@ -17,8 +17,8 @@ TRG=main
 all:
 #	$(CC) $(FLAGS) $(PROFILER) $(SRC) -o $(TRG)
 #	$(IC) $(SRC) -o $(TRG)
-	$(CC) $(FLAGS) $(SRC) -o $(TRG)
-#	$(CC) $(SRC) -o $(TRG)
+#	$(CC) $(FLAGS) $(SRC) -o $(TRG)
+	$(CC) $(SRC) -o $(TRG)
 
 .PHONY : clean
 clean:
