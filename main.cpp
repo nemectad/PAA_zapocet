@@ -38,8 +38,8 @@ int main(int argc, char* argv[]) {
     b = 1;
     Nx = 50;
     Ny = 50;
-    dt = 0.1;
-    T_max = 0.5;
+    dt = 0.05;
+    T_max = 0.2;
     filename = "data.txt";
     /*} else {
         Nx = atoi(argv[1]);
