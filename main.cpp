@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <fstream>
 
-
+// Uncomment for the analytical model
 //#define TEST
 
 void init_u(double **u, double *x, double *y, int Nx, int Ny) {
@@ -27,49 +27,14 @@ int main(int argc, char* argv[]) {
     double a, b;
     // Parameters for temporal grid
     double dt, T_max;
-
-    // Receive command line args.
-    // If no argument or too little arguments given, the default values 
-    // will be set.
-
     
-    //if (argc < 8) {
     a = -1;
     b = 1;
     Nx = 50;
     Ny = 50;
-    dt = 0.05;
-    T_max = 0.2;
+    dt = 0.02;
+    T_max = 0.1;
     filename = "data.txt";
-    /*} else {
-        Nx = atoi(argv[1]);
-        Ny = atoi(argv[2]);
-        a = atof(argv[3]);
-        b = atof(argv[4]);
-        dt = atof(argv[5]);
-        T_max = atof(argv[6]);
-        filename = argv[7];
-
-        if (Nx < 2 || Ny < 2) {
-            std::cout << "Incorrect 'Nx' or 'Ny' parameters smaller than 2." << std::endl;
-            return 1;
-        }
-        if (dt <= 0) {
-            std::cout << "Time increment 'dt' must be positive." << std::endl;
-            return 1;
-        }
-        if (T_max <= 0) {
-            std::cout << "Maximum time 'T_max' must be positive." << std::endl;
-            return 1;
-        }
-        if (a >= b) {
-            std::cout << "Coordinate 'b' must be larger than 'a'." << std::endl;
-            return 1;
-        }
-        
-    }
-    */
-
 
     // Spatial grid
     double *x = new double[Nx];
@@ -91,7 +56,7 @@ int main(int argc, char* argv[]) {
     init_u(u, x, y, Nx, Ny);
     
     // Solve the system for the given parameters
-    Merson_parallel(argc, argv, u, x, y, Nx, Ny, dt, T_max, delta, filename);
+    Merson_parallel(argc, argv, u, x, y, Nx, Ny, dt, T_max, delta, std::string("parallel_") + filename);
 
 
     // Comparison with the analytical model
@@ -123,8 +88,7 @@ int main(int argc, char* argv[]) {
     // Delete grid
     delete[] x;
     delete[] y;
-    //x = nullptr;
-    //y = nullptr;
+
     // Delete u - first individual columns, rows after
     dealloc(u, Nx);
 
