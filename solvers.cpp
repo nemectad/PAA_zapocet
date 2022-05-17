@@ -1,7 +1,7 @@
 #include "solvers.h"
 #include "utilities.h"
 #include <cmath>
-
+#define DEBUG
 
 
 double Laplace_u(double **u, int i, int j, double *x, double *y) {
@@ -186,21 +186,6 @@ void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y, i
         }
     }
     
-    //double **lap_u = new double*[Nx];
-    /*
-    double **lap_k1 = new double*[Nx];
-    double **lap_k2 = new double*[Nx];
-    double **lap_k3 = new double*[Nx];
-    double **lap_k4 = new double*[Nx];
-    double **lap_k5 = new double*[Nx];
-    double ***K = new double**[5];
-    // K matrix initialization - (5)*(Nx)*(Ny) array
-    for (int i = 0; i < 5; i++) {
-        K[i] = new double*[Nx];
-        alloc(K[i], Nx, Ny);
-    }
-    */
-    
     double *K1 = new double[arr_len];
     double *K2 = new double[arr_len];
     double *K3 = new double[arr_len];
@@ -211,14 +196,13 @@ void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y, i
     double *lap_k2 = new double[arr_len];
     double *lap_k3 = new double[arr_len];
     double *lap_k4 = new double[arr_len];
-    //double *lap_k5 = new double[arr_len];
 
     // Root process
     const int root = 0;
     int m1, m2;
     // Separate the main domain into m1*m2 subdomains
-    m1 = 1;
-    m2 = 1;
+    m1 = 2;
+    m2 = 2;
 
     int iter = 0;
 
@@ -238,13 +222,6 @@ void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y, i
         write_contiguous_data(u_local, t, x, y, Nx, Ny, filename, &f);
     }
 
-    // Define a custom MPI type => (Nx/m1)x(Ny/m2) 1D vector
-    /*
-    MPI_Datatype stype;
-
-    MPI_Type_contiguous(stride, MPI_DOUBLE, &stype);
-    MPI_Type_commit(&stype);
-    */
     // Main loop
     while(1) {
         if (iproc == root) {
@@ -259,8 +236,6 @@ void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y, i
             int shift_i = i*(Ny/m2);
             int pos_i = (iproc/m1)*(Nx/m1);
             int pos_j = (iproc%m2)*(Ny/m2);
-            //int pos_i = (iproc%m1)*(Nx/m1);
-            //int pos_j = (iproc/m2)*(Ny/m2);
             for (int j = 0; j < Ny/m2; j++) {  
                 local_lap[shift_i+j] = F_parallel(u_local, i + pos_i, j + pos_j, x, y, Nx, Ny);         
                 local_K[shift_i+j] = tau*local_lap[shift_i+j];
@@ -300,8 +275,6 @@ void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y, i
             int shift_i = i*(Ny/m2);
             int pos_i = (iproc/m1)*(Nx/m1);
             int pos_j = (iproc%m2)*(Ny/m2);
-            //int pos_i = (iproc%m1)*(Nx/m1);
-            //int pos_j = (iproc/m2)*(Ny/m2);
             for (int j = 0; j < Ny/m2; j++) {  
                 local_lap[shift_i+j] = F_parallel(K1, i + pos_i, j + pos_j, x, y, Nx, Ny);         
                 local_K[shift_i+j] = tau*(lap_u[shift_i+j] + local_lap[shift_i+j]/3);
@@ -340,8 +313,6 @@ void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y, i
             int shift_i = i*(Ny/m2);
             int pos_i = (iproc/m1)*(Nx/m1);
             int pos_j = (iproc%m2)*(Ny/m2);
-            //int pos_i = (iproc%m1)*(Nx/m1);
-            //int pos_j = (iproc/m2)*(Ny/m2);
             for (int j = 0; j < Ny/m2; j++) {  
                 local_lap[shift_i+j] = F_parallel(K2, i + pos_i, j + pos_j, x, y, Nx, Ny);         
                 local_K[shift_i+j] = tau*(lap_u[shift_i+j] + (lap_k1[shift_i+j]+local_lap[shift_i+j])/6);
@@ -381,8 +352,6 @@ void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y, i
             int shift_i = i*(Ny/m2);
             int pos_i = (iproc/m1)*(Nx/m1);
             int pos_j = (iproc%m2)*(Ny/m2);
-            //int pos_i = (iproc%m1)*(Nx/m1);
-            //int pos_j = (iproc/m2)*(Ny/m2);
             for (int j = 0; j < Ny/m2; j++) {  
                 local_lap[shift_i+j] = F_parallel(K3, i + pos_i, j + pos_j, x, y, Nx, Ny);         
                 local_K[shift_i+j] = tau*(lap_u[shift_i+j] + (lap_k1[shift_i+j]+3*local_lap[shift_i+j])/8);
@@ -421,8 +390,6 @@ void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y, i
             int shift_i = i*(Ny/m2);
             int pos_i = (iproc/m1)*(Nx/m1);
             int pos_j = (iproc%m2)*(Ny/m2);
-            //int pos_i = (iproc%m1)*(Nx/m1);
-            //int pos_j = (iproc/m2)*(Ny/m2);
             for (int j = 0; j < Ny/m2; j++) {  
                 local_lap[shift_i+j] = F_parallel(K4, i + pos_i, j + pos_j, x, y, Nx, Ny);         
                 local_K[shift_i+j] = tau*(lap_u[shift_i+j] + 0.5*lap_k1[shift_i+j]-1.5*lap_k3[shift_i+j] +
@@ -462,8 +429,7 @@ void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y, i
         if (iproc == root) {
             // Declare array of K's
             double *K[5] = {K1, K2, K3, K4, K5};
-            E = max_in_arr(K, arr_len);
-            std::cout << "E = " << E << std::endl;
+            E = max_in_arr(K1, K3, K4, K5, arr_len);
 
             // Update u
             if(E < delta) {
@@ -474,50 +440,34 @@ void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y, i
 
             tau = pow(delta/E, 0.2)*omega*tau;
 
-        } /*else {
-            MPI_Barrier(MPI_COMM_WORLD);
-        }*/
+            //print_arr(u_local, Nx, Ny);
+
+        } 
+
         // Broadcast updated values
         MPI_Bcast(u_local, arr_len, MPI_DOUBLE, root, MPI_COMM_WORLD);
         MPI_Bcast(&t, 1, MPI_DOUBLE, root, MPI_COMM_WORLD);
         MPI_Bcast(&tau, 1, MPI_DOUBLE, root, MPI_COMM_WORLD);
         MPI_Bcast(&last, 1, MPI_C_BOOL, root, MPI_COMM_WORLD);
-        //MPI_Bcast(&E, 1, MPI_DOUBLE, root, MPI_COMM_WORLD);
-
-        
-        //std::cout << tau << std::endl;
-
             
-        if (iproc == root) {
-            std::cout << "t = " << t << " tau = " << tau << " last = " << last << std::endl;
-        }
-        
+        #ifdef DEBUG
 
-        //MPI_Barrier(MPI_COMM_WORLD);
-        
+        if (iproc == 0) {
+            std::cout << "E = " << E << std::endl;
+            std::cout << "t = " << t << " tau = " << tau << " last = " << last << std::endl;
+        }   
+    
         iter++;
         if (iter > 50)
             break;
 
+        #endif
         
         if (last) 
             break;
         
     }
 
-    
-    /*
-    dealloc(lap_k1, Nx);
-    dealloc(lap_k2, Nx);
-    dealloc(lap_k3, Nx);
-    dealloc(lap_k4, Nx);
-    dealloc(lap_k5, Nx);
-    //dealloc(lap_u, Nx);
-    for (int i = 0; i < 5; i++) {
-        dealloc(K[i], Nx);
-    }
-    delete[] K;
-    */
     delete[] K1;
     delete[] K2;
     delete[] K3;
@@ -528,7 +478,6 @@ void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y, i
     delete[] lap_k2;
     delete[] lap_k3;
     delete[] lap_k4;
-    //delete[] lap_k5;
 
     MPI_Finalize();
 }
@@ -536,13 +485,7 @@ void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y, i
 void convolution_in_t(int Nx, int Ny, double *x, double *y, double **u, double t) {
     for (int i = 0; i < Nx; i++) {
         for (int j = 0; j < Ny; j++) {
-            /*if (i == 0 || j == 0 || i == Nx || j == Ny) {
-                u[i][j] = 0;
-            }
-            else*/
             u[i][j] = convolve(Nx, Ny, x, y, t, x[i], y[j]);
-            
-        
         }
     }
 }
@@ -554,11 +497,6 @@ double convolve(int Nx, int Ny, double *x, double *y, double t, double m, double
 
     for (int i = 0; i < Nx; i++) {
         for (int j = 0; j < Ny; j++) {
-            /*if (i == 0 || j == 0 || i == Nx || j == Ny) {
-                conv = conv;
-            }
-            else
-            */
             conv += Gauss(m-x[i], n-y[j], t)*(signum(-sqrt(x[i]*x[i] + y[j]*y[j]) + 0.1)+1)*dx*dy;
         }
     }

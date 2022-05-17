@@ -10,12 +10,14 @@ void alloc(double **u, int Nx, int Ny);
 void dealloc(double **u, int Nx);
 int signum(double x);
 double max_in_mtrx(double ***K, int Nx, int Ny);
-double max_in_arr(double **K, int arr_len);
+//double max_in_arr(double **K, int arr_len);
+double max_in_arr(double *K1, double *K3, double *K4, double *K5, int arr_len);
 void write_data(double **u, double t, double *x, double *y, int Nx, 
                 int Ny, std::string filename, std::ofstream *f);
 void write_contiguous_data(double *u, double t, double *x, double *y, int Nx, 
                            int Ny, std::string filename, std::ofstream *f);
 double Gauss(double x, double y, double t);
 void collect_buffers(double *lap, double *K, double *buffer_lap, double *buffer_K, int M1, int M2, int Nx, int Ny);
+void print_arr(double *arr, int Nx, int Ny);
 
 #endif
