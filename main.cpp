@@ -5,9 +5,14 @@
 #include <cmath>
 #include <stdlib.h>
 #include <fstream>
+#include <ctime>
 
 // Uncomment for the analytical model
 //#define TEST
+// Uncomment for serial code
+//#define SERIAL
+// Uncomment for parallel code
+#define PARALLEL
 
 void init_u(double **u, double *x, double *y, int Nx, int Ny) {
     for (int i = 0; i < Nx; i++) {
@@ -33,7 +38,7 @@ int main(int argc, char* argv[]) {
     Nx = 50;
     Ny = 50;
     dt = 0.02;
-    T_max = 0.1;
+    T_max = 0.3;
     filename = "data.txt";
 
     // Spatial grid
@@ -55,16 +60,49 @@ int main(int argc, char* argv[]) {
     // Set initial condition for u
     init_u(u, x, y, Nx, Ny);
     
-    // Solve the system for the given parameters
+
+    #ifdef PARALLEL
+    // ****************************************************
+    // Solve the system for the given parameters - parallel
+
+    // Measure the execution time
+    //std::clock_t c_start = std::clock();
+    
     Merson_parallel(argc, argv, u, x, y, Nx, Ny, dt, T_max, delta, std::string("parallel_") + filename);
 
+    #endif
+
+    //std::clock_t c_end = std::clock();
+
+    //double time_elapsed_ms = 1000.0 * (c_end-c_start) / CLOCKS_PER_SEC;
+    //std::cout << "CPU time used (parallel): " << time_elapsed_ms << " ms\n";
+
+    #ifdef SERIAL
+
+    // Set initial condition for u
+    init_u(u, x, y, Nx, Ny);
+
+    // **************************************************
+    // Solve the system for the given parameters - serial
+
+    //c_start = std::clock();
+    
+    Merson(u, x, y, Nx, Ny, dt, T_max, delta, std::string("serial_") + filename);
+
+    //c_end = std::clock();
+
+    //time_elapsed_ms = 1000.0 * (c_end-c_start) / CLOCKS_PER_SEC;
+    //std::cout << "CPU time used (serial): " << time_elapsed_ms << " ms\n";
+
+    #endif
 
     // Comparison with the analytical model
     #ifdef TEST
 
     // Computation variables
     int N = 10;
-    double *t = new double[N+1];
+    double t = 0;
+    dt = T_max/N;
     init_u(u, x, y, Nx, Ny);
 
     // Write initial data
@@ -73,15 +111,15 @@ int main(int argc, char* argv[]) {
     test_f.open(test_filename, std::ios::out | std::ios_base::app);
     test_f << Nx << "\t" << Ny << "\n";
     test_f.close();
-    write_data(u, t[0], x, y, Nx, Ny, test_filename, &test_f);
+    write_data(u, t, x, y, Nx, Ny, test_filename, &test_f);
 
     // Main computation cycle
     for (int i = 1; i <= N; i++) {
-        t[i] = t[i-1] + T_max/N;
-        convolution_in_t(Nx, Ny, x, y, u, t[i]);
-        write_data(u, t[i], x, y, Nx, Ny, test_filename, &test_f);
+        t = t + dt;
+        convolution_in_t(Nx, Ny, x, y, u, t);
+        write_data(u, t, x, y, Nx, Ny, test_filename, &test_f);
     }
-    delete[] t;
+    
     #endif
 
 
