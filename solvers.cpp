@@ -157,15 +157,9 @@ void Merson(double **u, double *x, double *y, int Nx, int Ny, double dt,
     delete[] K;
 }
 
-void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y, 
+void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y, 
                      int Nx, int Ny, double dt, double T, double delta, 
                      std::string filename) {
-    int nproc, iproc;
-        
-    MPI_Init(&argc, &argv);
-    MPI_Comm_size(MPI_COMM_WORLD, &nproc);
-    MPI_Comm_rank(MPI_COMM_WORLD, &iproc);
-
 
     double t, tau, eps, E, omega;
     bool last = false;
@@ -255,16 +249,16 @@ void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y,
         Gather computed data
         */
         if (iproc == root) {
-            gather(local_K, local_lap, lap_u, K1, m1, m2, Nx, Ny, stride, root, MPI_COMM_WORLD);
+            gather(local_K, local_lap, lap_u, K1, m1, m2, Nx, Ny, stride, root, comm);
         } else {
             // Other processess do nothing
-            MPI_Gather(local_K, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, MPI_COMM_WORLD);
-            MPI_Gather(local_lap, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, MPI_COMM_WORLD);
+            MPI_Gather(local_K, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
+            MPI_Gather(local_lap, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
         }
 
         // Broadcasting values to other processes
-        MPI_Bcast(K1, arr_len, MPI_DOUBLE, root, MPI_COMM_WORLD);
-        MPI_Bcast(lap_u, arr_len, MPI_DOUBLE, root, MPI_COMM_WORLD);
+        MPI_Bcast(K1, arr_len, MPI_DOUBLE, root, comm);
+        MPI_Bcast(lap_u, arr_len, MPI_DOUBLE, root, comm);
         
         /**********************
         Compute K2 coefficients
@@ -282,16 +276,16 @@ void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y,
         Gather computed data
         */
         if (iproc == root) {
-            gather(local_K, local_lap, lap_k1, K2, m1, m2, Nx, Ny, stride, root, MPI_COMM_WORLD);
+            gather(local_K, local_lap, lap_k1, K2, m1, m2, Nx, Ny, stride, root, comm);
         } else {
             // Other processess do nothing
-            MPI_Gather(local_K, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, MPI_COMM_WORLD);
-            MPI_Gather(local_lap, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, MPI_COMM_WORLD);
+            MPI_Gather(local_K, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
+            MPI_Gather(local_lap, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
         }
 
         // Broadcasting values to other processes
-        MPI_Bcast(K2, arr_len, MPI_DOUBLE, root, MPI_COMM_WORLD);
-        MPI_Bcast(lap_k1, arr_len, MPI_DOUBLE, root, MPI_COMM_WORLD);
+        MPI_Bcast(K2, arr_len, MPI_DOUBLE, root, comm);
+        MPI_Bcast(lap_k1, arr_len, MPI_DOUBLE, root, comm);
 
         /**********************
         Compute K3 coefficients
@@ -309,16 +303,16 @@ void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y,
         Gather computed data
         */
         if (iproc == root) {
-            gather(local_K, local_lap, lap_k2, K3, m1, m2, Nx, Ny, stride, root, MPI_COMM_WORLD);
+            gather(local_K, local_lap, lap_k2, K3, m1, m2, Nx, Ny, stride, root, comm);
         } else {
             // Other processess do nothing
-            MPI_Gather(local_K, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, MPI_COMM_WORLD);
-            MPI_Gather(local_lap, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, MPI_COMM_WORLD);
+            MPI_Gather(local_K, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
+            MPI_Gather(local_lap, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
         }
 
         // Broadcasting values to other processes
-        MPI_Bcast(K3, arr_len, MPI_DOUBLE, root, MPI_COMM_WORLD);
-        MPI_Bcast(lap_k2, arr_len, MPI_DOUBLE, root, MPI_COMM_WORLD);
+        MPI_Bcast(K3, arr_len, MPI_DOUBLE, root, comm);
+        MPI_Bcast(lap_k2, arr_len, MPI_DOUBLE, root, comm);
 
 
         /**********************
@@ -337,16 +331,16 @@ void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y,
         Gather computed data
         */
         if (iproc == root) {
-            gather(local_K, local_lap, lap_k3, K4, m1, m2, Nx, Ny, stride, root, MPI_COMM_WORLD);
+            gather(local_K, local_lap, lap_k3, K4, m1, m2, Nx, Ny, stride, root, comm);
         } else {
             // Other processess do nothing
-            MPI_Gather(local_K, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, MPI_COMM_WORLD);
-            MPI_Gather(local_lap, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, MPI_COMM_WORLD);
+            MPI_Gather(local_K, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
+            MPI_Gather(local_lap, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
         }
 
         // Broadcasting values to other processes
-        MPI_Bcast(K4, arr_len, MPI_DOUBLE, root, MPI_COMM_WORLD);
-        MPI_Bcast(lap_k3, arr_len, MPI_DOUBLE, root, MPI_COMM_WORLD);
+        MPI_Bcast(K4, arr_len, MPI_DOUBLE, root, comm);
+        MPI_Bcast(lap_k3, arr_len, MPI_DOUBLE, root, comm);
 
         /**********************
         Compute K5 coefficients
@@ -365,16 +359,16 @@ void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y,
         Gather computed data
         */
         if (iproc == root) {
-            gather(local_K, local_lap, lap_k4, K5, m1, m2, Nx, Ny, stride, root, MPI_COMM_WORLD);
+            gather(local_K, local_lap, lap_k4, K5, m1, m2, Nx, Ny, stride, root, comm);
         } else {
             // Other processess do nothing
-            MPI_Gather(local_K, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, MPI_COMM_WORLD);
-            MPI_Gather(local_lap, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, MPI_COMM_WORLD);
+            MPI_Gather(local_K, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
+            MPI_Gather(local_lap, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
         }
 
         // Broadcasting values to other processes
-        MPI_Bcast(K5, arr_len, MPI_DOUBLE, root, MPI_COMM_WORLD);
-        MPI_Bcast(lap_k4, arr_len, MPI_DOUBLE, root, MPI_COMM_WORLD);
+        MPI_Bcast(K5, arr_len, MPI_DOUBLE, root, comm);
+        MPI_Bcast(lap_k4, arr_len, MPI_DOUBLE, root, comm);
 
         /* ************************
         Compute errors & write data
@@ -397,10 +391,10 @@ void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y,
         } 
 
         // Broadcast updated values
-        MPI_Bcast(u_local, arr_len, MPI_DOUBLE, root, MPI_COMM_WORLD);
-        MPI_Bcast(&t, 1, MPI_DOUBLE, root, MPI_COMM_WORLD);
-        MPI_Bcast(&tau, 1, MPI_DOUBLE, root, MPI_COMM_WORLD);
-        MPI_Bcast(&last, 1, MPI_C_BOOL, root, MPI_COMM_WORLD);
+        MPI_Bcast(u_local, arr_len, MPI_DOUBLE, root, comm);
+        MPI_Bcast(&t, 1, MPI_DOUBLE, root, comm);
+        MPI_Bcast(&tau, 1, MPI_DOUBLE, root, comm);
+        MPI_Bcast(&last, 1, MPI_C_BOOL, root, comm);
 
 
         if (last) 
@@ -433,8 +427,6 @@ void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y,
     delete[] lap_k3;
     delete[] lap_k4;
 
-    // Finish MPI
-    MPI_Finalize();
 }
 
 void convolution_in_t(int Nx, int Ny, double *x, double *y, double **u, double t) {

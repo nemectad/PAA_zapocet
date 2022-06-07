@@ -10,7 +10,7 @@ double F(double **u, int i, int j, double *x, double *y, int Nx, int Ny);
 double F_parallel(double *u, int i, int j, double *x, double *y, int Nx, int Ny);
 void Merson(double **u, double *x, double *y, int Nx, int Ny, double dt, 
             double T, double delta, std::string filename);
-void Merson_parallel(int argc, char* argv[], double **u, double *x, double *y, int Nx, int Ny, double dt, 
+void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y, int Nx, int Ny, double dt, 
             double T, double delta, std::string filename);
 void update_u(double **u, double ***K, int Nx, int Ny);
 void update_u_contiguous(double *u, double **K, int arr_len);

@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <fstream>
 #include <ctime>
+#include <mpi.h>
 
 // Uncomment for the analytical model
 //#define TEST
@@ -67,9 +68,15 @@ int main(int argc, char* argv[]) {
 
     // Measure the execution time
     //std::clock_t c_start = std::clock();
+    int nproc, iproc;
+        
+    MPI_Init(&argc, &argv);
+    MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+    MPI_Comm_rank(MPI_COMM_WORLD, &iproc);
     
-    Merson_parallel(argc, argv, u, x, y, Nx, Ny, dt, T_max, delta, std::string("parallel_") + filename);
+    Merson_parallel(iproc, MPI_COMM_WORLD, u, x, y, Nx, Ny, dt, T_max, delta, std::string("parallel_") + filename);
 
+    MPI_Finalize();
     #endif
 
     //std::clock_t c_end = std::clock();
