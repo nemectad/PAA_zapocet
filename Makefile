@@ -17,8 +17,8 @@ TRG=main
 all:
 #	$(CC) $(FLAGS) $(PROFILER) $(SRC) -o $(TRG)
 #	$(IC) $(SRC) -o $(TRG)
-#	$(CC) $(FLAGS) $(SRC) -o $(TRG)
-	$(CC) $(SRC) -o $(TRG)
+	$(CC) $(FLAGS) $(SRC) -o $(TRG)
+#	$(CC) $(SRC) -o $(TRG)
 
 .PHONY : clean
 clean:

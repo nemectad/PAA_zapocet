@@ -7,39 +7,36 @@
 double Laplace_u(double **u, int i, int j, double *x, double *y) {
     double dx = x[1]-x[0];
     double dy = y[1]-y[0];
-    return (u[i+1][j] - 2*u[i][j] + u[i-1][j])/(dx*dx) + 
-           (u[i][j+1] - 2*u[i][j] + u[i][j-1])/(dy*dy);
+    return (u[i+1][j] - 2*u[i][j] + u[i-1][j])/(dy*dy) + 
+           (u[i][j+1] - 2*u[i][j] + u[i][j-1])/(dx*dx);
 }
 
-double Laplace_u_parallel(double *u, int i, int j, double *x, double *y, int Ny) {
-    double dx = x[1]-x[0];
-    double dy = y[1]-y[0];
-
-    return (u[(i+1)*Ny + j] - 2*u[i*Ny + j] + u[(i-1)*Ny + j])/(dx*dx) + 
-           (u[i*Ny + j+1] - 2*u[i*Ny + j] + u[i*Ny + j-1])/(dy*dy);
+double Laplace_u_parallel(double *u, int i, int j, double dx, double dy, int Nx) {
+    return (u[(i+1)*Nx + j] - 2*u[i*Nx + j] + u[(i-1)*Nx + j])/(dx*dx) + 
+           (u[i*Nx + j+1] - 2*u[i*Nx + j] + u[i*Nx + j-1])/(dy*dy);
 }
 
-double F(double **u, int i, int j, double *x, double *y, int Nx, int Ny) {
+double F(double **u, int i, int j, double *x, double *y, int Ny, int Nx) {
     // Boundary condition
-    if (i == 0 || j == 0 || i == Nx-1 || j == Ny-1) {
+    if (i == 0 || j == 0 || i == Ny-1 || j == Nx-1) {
         return 0;
     }
     // Laplace
     return Laplace_u(u, i, j, x, y);
 }
 
-double F_parallel(double *u, int i, int j, double *x, double *y, int Nx, int Ny) {
+double F_parallel(double *u, int i, int j, double dx, double dy, int Ny, int Nx) {
     // Boundary condition
     if (i == 0 || j == 0 || i == Nx-1 || j == Ny-1) {
         return 0;
     }
     // Laplace
-    return Laplace_u_parallel(u, i, j, x, y, Ny);
+    return Laplace_u_parallel(u, i, j, dx, dy, Nx);
 }
 
-void update_u(double **u, double ***K, int Nx, int Ny) {
-    for (int i = 0; i < Nx; i++) {
-        for (int j = 0; j < Ny; j++) {
+void update_u(double **u, double ***K, int Ny, int Nx) {
+    for (int i = 0; i < Ny; i++) {
+        for (int j = 0; j < Nx; j++) {
             u[i][j] = u[i][j] + (K[0][i][j] + 4*K[3][i][j] + K[4][i][j])/6;
         }
     }
@@ -51,7 +48,7 @@ void update_u_contiguous(double *u, double **K, int arr_len) {
     }
 }
 
-void Merson(double **u, double *x, double *y, int Nx, int Ny, double dt, 
+void Merson(double **u, double *x, double *y, int Ny, int Nx, double dt, 
             double T, double delta, std::string filename) {
     double t, tau, eps, E, omega;
     bool last = false;
@@ -60,31 +57,31 @@ void Merson(double **u, double *x, double *y, int Nx, int Ny, double dt,
     omega = 0.8;
     t = 0.0;
     
-    double **lap_u = new double*[Nx];
-    double **lap_k1 = new double*[Nx];
-    double **lap_k2 = new double*[Nx];
-    double **lap_k3 = new double*[Nx];
-    double **lap_k4 = new double*[Nx];
-    double **lap_k5 = new double*[Nx];
+    double **lap_u = new double*[Ny];
+    double **lap_k1 = new double*[Ny];
+    double **lap_k2 = new double*[Ny];
+    double **lap_k3 = new double*[Ny];
+    double **lap_k4 = new double*[Ny];
+    double **lap_k5 = new double*[Ny];
     double ***K = new double**[5];
     // K matrix initialization - (5)*(Nx)*(Ny) array
     for (int i = 0; i < 5; i++) {
-        K[i] = new double*[Nx];
-        alloc(K[i], Nx, Ny);
+        K[i] = new double*[Ny];
+        alloc(K[i], Ny, Nx);
     }
     
-    alloc(lap_u, Nx, Ny);
-    alloc(lap_k1, Nx, Ny);
-    alloc(lap_k2, Nx, Ny);
-    alloc(lap_k3, Nx, Ny);
-    alloc(lap_k4, Nx, Ny);
-    alloc(lap_k5, Nx, Ny);
+    alloc(lap_u, Ny, Nx);
+    alloc(lap_k1, Ny, Nx);
+    alloc(lap_k2, Ny, Nx);
+    alloc(lap_k3, Ny, Nx);
+    alloc(lap_k4, Ny, Nx);
+    alloc(lap_k5, Ny, Nx);
 
     // Write initial data:
     f.open(filename, std::ios::out | std::ios_base::app);
-    f << Nx << "\t" << Ny << "\n";
+    f << Ny << "\t" << Nx << "\n";
     f.close();
-    write_data(u, t, x, y, Nx, Ny, filename, &f);
+    write_data(u, t, x, y, Ny, Nx, filename, &f);
 
     // Main loop
     while(1) {
@@ -93,50 +90,50 @@ void Merson(double **u, double *x, double *y, int Nx, int Ny, double dt,
             last = true;
         }
 
-        for (int i = 0; i < Nx; i++) {
-            for (int j = 0; j < Ny; j++) {  
-                lap_u[i][j] = F(u, i, j, x, y, Nx, Ny);         
+        for (int i = 0; i < Ny; i++) {
+            for (int j = 0; j < Nx; j++) {  
+                lap_u[i][j] = F(u, i, j, x, y, Ny, Nx);         
                 K[0][i][j] = tau*lap_u[i][j];
             }
         }
 
-        for (int i = 0; i < Nx; i++) {
-            for (int j = 0; j < Ny; j++) {  
-                lap_k1[i][j] = F(K[0], i, j, x, y, Nx, Ny);
+        for (int i = 0; i < Ny; i++) {
+            for (int j = 0; j < Nx; j++) {  
+                lap_k1[i][j] = F(K[0], i, j, x, y, Ny, Nx);
                 K[1][i][j] = tau*(lap_u[i][j] + lap_k1[i][j]/3);
             }
         }
 
-        for (int i = 0; i < Nx; i++) {
-            for (int j = 0; j < Ny; j++) {  
-                lap_k2[i][j] = F(K[1], i, j, x, y, Nx, Ny);
+        for (int i = 0; i < Ny; i++) {
+            for (int j = 0; j < Nx; j++) {  
+                lap_k2[i][j] = F(K[1], i, j, x, y, Ny, Nx);
                 K[2][i][j] = tau*(lap_u[i][j] + (lap_k1[i][j] + lap_k2[i][j])/6);
             }
         }
 
-        for (int i = 0; i < Nx; i++) {
-            for (int j = 0; j < Ny; j++) {  
-                lap_k3[i][j] = F(K[2], i, j, x, y, Nx, Ny);
+        for (int i = 0; i < Ny; i++) {
+            for (int j = 0; j < Nx; j++) {  
+                lap_k3[i][j] = F(K[2], i, j, x, y, Ny, Nx);
                 K[3][i][j] = tau*(lap_u[i][j] + (lap_k1[i][j] + 3*lap_k3[i][j])/8);
             }
         }
 
-        for (int i = 0; i < Nx; i++) {
-            for (int j = 0; j < Ny; j++) {  
-                lap_k4[i][j] = F(K[3], i, j, x, y, Nx, Ny);
+        for (int i = 0; i < Ny; i++) {
+            for (int j = 0; j < Nx; j++) {  
+                lap_k4[i][j] = F(K[3], i, j, x, y, Ny, Nx);
                 K[4][i][j] = tau*(lap_u[i][j] + 0.5*lap_k1[i][j] - 1.5*lap_k3[i][j] +
                              2*lap_k4[i][j]);
             }
         }
 
         // Compute errors
-        E = max_in_mtrx(K, Nx, Ny);
+        E = max_in_mtrx(K, Ny, Nx);
         
         // Update u
         if(E < delta) {
-            update_u(u, K, Nx, Ny); 
+            update_u(u, K, Ny, Nx); 
             t += tau;
-            write_data(u, t, x, y, Nx, Ny, filename, &f);
+            write_data(u, t, x, y, Ny, Nx, filename, &f);
         }
         
         tau = pow(delta/E, 0.2)*omega*tau;
@@ -145,39 +142,37 @@ void Merson(double **u, double *x, double *y, int Nx, int Ny, double dt,
             break;  
     }
     
-    dealloc(lap_k1, Nx);
-    dealloc(lap_k2, Nx);
-    dealloc(lap_k3, Nx);
-    dealloc(lap_k4, Nx);
-    dealloc(lap_k5, Nx);
-    dealloc(lap_u, Nx);
+    dealloc(lap_k1, Ny);
+    dealloc(lap_k2, Ny);
+    dealloc(lap_k3, Ny);
+    dealloc(lap_k4, Ny);
+    dealloc(lap_k5, Ny);
+    dealloc(lap_u, Ny);
     for (int i = 0; i < 5; i++) {
-        dealloc(K[i], Nx);
+        dealloc(K[i], Ny);
     }
     delete[] K;
+
+    std::cout << "DONE" << std::endl;
 }
 
 void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y, 
-                     int Nx, int Ny, double dt, double T, double delta, 
+                     int Ny, int Nx, double dt, double T, double delta, 
                      std::string filename) {
 
-    double t, tau, eps, E, omega;
+    double t, tau, eps, E, omega, dx, dy;
     bool last = false;
     tau = dt;
     std::ofstream f;
     omega = 0.8;
     t = 0.0;
-    int arr_len = Nx*Ny;
+    int arr_len = Ny*Nx;
+
+    dx = x[1]-x[0];
+    dy = y[1]-y[0];
 
 
-    // Declare local u array -> flattened u
-    double u_local[arr_len];
 
-    for (int i = 0; i < Nx; i++) {
-        for (int j = 0; j < Ny; j++) {
-            u_local[i*Ny + j] = u[i][j];
-        }
-    }
     
     // Allocate buffer matrices
     double *K1 = new double[arr_len];
@@ -194,28 +189,57 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
     // Root process
     const int root = 0;
     int m1, m2;
+    int Ny_loc, Nx_loc;
     // Separate the main domain into m1*m2 subdomains
-    m1 = 2;
-    m2 = 2;
+    m1 = 2; // # of rows
+    m2 = 2; // # of columns
+    // Local array length
+    int loc_arr_len = Ny*Nx/m1/m2;
+    Ny_loc = Ny/m1;
+    Nx_loc = Nx/m2;
+
+    // Declare shift integers to move on the computational grid
+    int pos_i = (iproc/m1)*Ny_loc;
+    int pos_j = (iproc%m2)*Nx_loc;
+    int pos;
+
+    // Declare local u array -> flattened u
+    double local_u[loc_arr_len];
+
+    // Define the length of a subdomain array
+    //int stride = (Nx/m1)*(Ny/m2);
+
+    // Declare local array for computation on the subdomain (has the same 
+    // number of elements as the corresponding matrix)
+    double local_K[loc_arr_len];
+    double local_lap[loc_arr_len];
+    double *top = new double[Nx_loc];
+    double *bottom = new double[Nx_loc];
+    double *left = new double[Ny_loc];
+    double *right = new double[Ny_loc];
+
+    int M1, M2;
+    // Index of the array in the grid
+    M1 = iproc/m1;
+    M2 = iproc%m2;
+
+    for (int i = 0; i < Ny_loc; i++) {
+        for (int j = 0; j < Nx_loc; j++) {
+            local_u[i*Nx_loc + j] = u[i+pos_i][j+pos_j];
+        }
+    }
 
     #ifdef DEBUG
     int iter = 0;
     #endif
 
-    // Define the length of a subdomain array
-    int stride = (Nx/m1)*(Ny/m2);
-
-    // Declare local array for computation on the subdomain (has the same 
-    // number of elements as the corresponding matrix)
-    double local_K[stride];
-    double local_lap[stride];
 
     // Write initial data:
     if (iproc == root) {
         f.open(filename, std::ios::out | std::ios_base::app);
-        f << Nx << "\t" << Ny << "\n";
+        f << Ny << "\t" << Nx << "\n";
         f.close();
-        write_contiguous_data(u_local, t, x, y, Nx, Ny, filename, &f);
+        write_data(u, t, x, y, Ny, Nx, filename, &f);
     }
 
     // Main loop
@@ -226,21 +250,52 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
                 last = true;
             }
         }
+
+        /*
+         * Set top, bottom, right and left buffers
+        */
         
-        // Declare shift integers to move on the computational grid
-        int pos_i = (iproc/m1)*(Nx/m1);
-        int pos_j = (iproc%m2)*(Ny/m2);
-        int pos;
+        set_buffers(local_u, left, right, top, bottom);
+
+        /**********************
+         * Share buffers 
+        */
+        int proc_recv;
+
+        // iproc bottom to top of below
+        if (M1 + 1 < m1) {
+            proc_recv = iproc + m2;
+            MPI_Sendrecv(bottom, Nx_loc, MPI_DOUBLE, proc_recv, 0, 
+                         top, Nx_loc, MPI_DOUBLE, iproc, 0, comm, MPI_STATUS_IGNORE)
+        }
+        // iproc top to bottom of up
+        if (M1 - 1 >= 0) {
+            proc_recv = iproc - m2;
+            MPI_Sendrecv(top, Nx_loc, MPI_DOUBLE, proc_recv, 0, 
+                         bottom, Nx_loc, MPI_DOUBLE, iproc, 0, comm, MPI_STATUS_IGNORE)
+        }
+        // iproc left to right of left
+        if (M2 - 1 >= 0) {
+            proc_recv = iproc - 1;
+            MPI_Sendrecv(left, Ny_loc, MPI_DOUBLE, proc_recv, 0, 
+                         right, Ny_loc, MPI_DOUBLE, iproc, 0, comm, MPI_STATUS_IGNORE)
+        }
+        // iproc right to left of right
+        if (M2 + 1 < m2) {
+            proc_recv = iproc + 1;
+            MPI_Sendrecv(right, Ny_loc, MPI_DOUBLE, proc_recv, 0, 
+                         left, Ny_loc, MPI_DOUBLE, iproc, 0, comm, MPI_STATUS_IGNORE)
+        }
 
         /**********************
         Compute K1 coefficients
         */
 
         // Compute the values in each subdomain
-        for (int i = 0; i < Nx/m1; i++) {
-            int shift_i = i*(Ny/m2);
+        for (int i = 0; i < Ny/m1; i++) {
+            int shift_i = i*(Nx/m2);
             for (int j = 0; j < Ny/m2; j++) {  
-                local_lap[shift_i+j] = F_parallel(u_local, i + pos_i, j + pos_j, x, y, Nx, Ny);         
+                local_lap[shift_i+j] = F_parallel(u_local, i + pos_i, j + pos_j, dx, dy, Nx, Ny);         
                 local_K[shift_i+j] = tau*local_lap[shift_i+j];
             }
         }
@@ -249,7 +304,7 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
         Gather computed data
         */
         if (iproc == root) {
-            gather(local_K, local_lap, lap_u, K1, m1, m2, Nx, Ny, stride, root, comm);
+            gather(local_K, local_lap, lap_u, K1, m1, m2, stride, root, comm);
         } else {
             // Other processess do nothing
             MPI_Gather(local_K, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
@@ -266,7 +321,7 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
         for (int i = 0; i < Nx/m1; i++) {
             int shift_i = i*(Ny/m2);
             for (int j = 0; j < Ny/m2; j++) {  
-                local_lap[shift_i+j] = F_parallel(K1, i + pos_i, j + pos_j, x, y, Nx, Ny);         
+                local_lap[shift_i+j] = F_parallel(K1, i + pos_i, j + pos_j, dx, dy, Nx, Ny);         
                 pos = (i+pos_i)*Ny + j + pos_j;
                 local_K[shift_i+j] = tau*(lap_u[pos] + local_lap[shift_i+j]/3);
             }
@@ -276,7 +331,7 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
         Gather computed data
         */
         if (iproc == root) {
-            gather(local_K, local_lap, lap_k1, K2, m1, m2, Nx, Ny, stride, root, comm);
+            gather(local_K, local_lap, lap_k1, K2, m1, m2, stride, root, comm);
         } else {
             // Other processess do nothing
             MPI_Gather(local_K, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
@@ -293,7 +348,7 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
         for (int i = 0; i < Nx/m1; i++) {
             int shift_i = i*(Ny/m2);
             for (int j = 0; j < Ny/m2; j++) {  
-                local_lap[shift_i+j] = F_parallel(K2, i + pos_i, j + pos_j, x, y, Nx, Ny);         
+                local_lap[shift_i+j] = F_parallel(K2, i + pos_i, j + pos_j, dx, dy, Nx, Ny);         
                 pos = (i+pos_i)*Ny + j + pos_j;
                 local_K[shift_i+j] = tau*(lap_u[pos] + (lap_k1[pos]+local_lap[shift_i+j])/6);
             }
@@ -303,7 +358,7 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
         Gather computed data
         */
         if (iproc == root) {
-            gather(local_K, local_lap, lap_k2, K3, m1, m2, Nx, Ny, stride, root, comm);
+            gather(local_K, local_lap, lap_k2, K3, m1, m2, stride, root, comm);
         } else {
             // Other processess do nothing
             MPI_Gather(local_K, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
@@ -321,7 +376,7 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
         for (int i = 0; i < Nx/m1; i++) {
             int shift_i = i*(Ny/m2);
             for (int j = 0; j < Ny/m2; j++) {  
-                local_lap[shift_i+j] = F_parallel(K3, i + pos_i, j + pos_j, x, y, Nx, Ny);         
+                local_lap[shift_i+j] = F_parallel(K3, i + pos_i, j + pos_j, dx, dy, Nx, Ny);         
                 pos = (i+pos_i)*Ny + j + pos_j;
                 local_K[shift_i+j] = tau*(lap_u[pos] + (lap_k1[pos]+3*local_lap[shift_i+j])/8);
             }
@@ -331,7 +386,7 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
         Gather computed data
         */
         if (iproc == root) {
-            gather(local_K, local_lap, lap_k3, K4, m1, m2, Nx, Ny, stride, root, comm);
+            gather(local_K, local_lap, lap_k3, K4, m1, m2, stride, root, comm);
         } else {
             // Other processess do nothing
             MPI_Gather(local_K, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
@@ -348,7 +403,7 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
         for (int i = 0; i < Nx/m1; i++) {
             int shift_i = i*(Ny/m2);
             for (int j = 0; j < Ny/m2; j++) {  
-                local_lap[shift_i+j] = F_parallel(K4, i + pos_i, j + pos_j, x, y, Nx, Ny);         
+                local_lap[shift_i+j] = F_parallel(K4, i + pos_i, j + pos_j, dx, dy, Nx, Ny);         
                 pos = (i+pos_i)*Ny + j + pos_j;
                 local_K[shift_i+j] = tau*(lap_u[pos] + 0.5*lap_k1[pos]-1.5*lap_k3[pos] +
                                      2*local_lap[shift_i+j]);
@@ -359,7 +414,7 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
         Gather computed data
         */
         if (iproc == root) {
-            gather(local_K, local_lap, lap_k4, K5, m1, m2, Nx, Ny, stride, root, comm);
+            gather(local_K, local_lap, lap_k4, K5, m1, m2, stride, root, comm);
         } else {
             // Other processess do nothing
             MPI_Gather(local_K, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
@@ -426,13 +481,17 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
     delete[] lap_k2;
     delete[] lap_k3;
     delete[] lap_k4;
+    delete[] top;
+    delete[] bottom;
+    delete[] left;
+    delete[] right;
 
 }
 
-void convolution_in_t(int Nx, int Ny, double *x, double *y, double **u, double t) {
-    for (int i = 0; i < Nx; i++) {
-        for (int j = 0; j < Ny; j++) {
-            u[i][j] = convolve(Nx, Ny, x, y, t, x[i], y[j]);
+void convolution_in_t(int Ny, int Nx, double *x, double *y, double **u, double t) {
+    for (int i = 0; i < Ny; i++) {
+        for (int j = 0; j < Nx; j++) {
+            u[i][j] = convolve(Ny, Nx, x, y, t, x[j], y[i]);
         }
     }
 }
@@ -442,9 +501,9 @@ double convolve(int Nx, int Ny, double *x, double *y, double t, double m, double
     double dx = x[1]-x[0];
     double dy = y[1]-y[0];
 
-    for (int i = 0; i < Nx; i++) {
-        for (int j = 0; j < Ny; j++) {
-            conv += Gauss(m-x[i], n-y[j], t)*(signum(-sqrt(x[i]*x[i] + y[j]*y[j]) + 0.1)+1)*dx*dy;
+    for (int i = 0; i < Ny; i++) {
+        for (int j = 0; j < Nx; j++) {
+            conv += Gauss(m-x[i], n-y[j], t)*(signum(-sqrt(x[j]*x[j] + y[i]*y[i]) + 0.1)+1)*dx*dy;
         }
     }
     return conv;

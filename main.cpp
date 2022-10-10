@@ -1,4 +1,3 @@
-//#include <mpi.h>
 #include <iostream>
 #include "solvers.h"
 #include "utilities.h"
@@ -11,14 +10,14 @@
 // Uncomment for the analytical model
 //#define TEST
 // Uncomment for serial code
-//#define SERIAL
+#define SERIAL
 // Uncomment for parallel code
-#define PARALLEL
+//#define PARALLEL
 
-void init_u(double **u, double *x, double *y, int Nx, int Ny) {
-    for (int i = 0; i < Nx; i++) {
-        for (int j = 0; j < Ny; j++) {
-            u[i][j] = signum(-sqrt(x[i]*x[i] + y[j]*y[j]) + 0.1)+1;
+void init_u(double **u, double *x, double *y, int Ny, int Nx) {
+    for (int i = 0; i < Ny; i++) {
+        for (int j = 0; j < Nx; j++) {
+            u[i][j] = signum(-sqrt(y[i]*y[i] + x[j]*x[j]) + 0.1)+1;
         }
     }
 }
@@ -30,13 +29,13 @@ int main(int argc, char* argv[]) {
 
     // Parameters for spatial grid
     int Nx, Ny;
-    double a, b;
+    double a, b, dx, dy;
     // Parameters for temporal grid
     double dt, T_max;
     
     a = -1;
     b = 1;
-    Nx = 50;
+    Nx = 25;
     Ny = 50;
     dt = 0.02;
     T_max = 0.3;
@@ -46,60 +45,48 @@ int main(int argc, char* argv[]) {
     double *x = new double[Nx];
     double *y = new double[Ny];
 
+    // Solution grid - pointer array for column representation of solution u
+    double **u = new double*[Ny];
+
     // Error treshold
     double delta = 0.0001;
 
     set_grid(x, a, b, Nx);
     set_grid(y, a, b, Ny);
 
-    // Solution grid - pointer array for column representation of solution u
-    double **u = new double*[Nx];
-
     // Allocate u dynamically according to the grid size
-    alloc(u, Nx, Ny);
+    alloc(u, Ny, Nx);
 
-    // Set initial condition for u
-    init_u(u, x, y, Nx, Ny);
     
 
+    // Set initial condition for u
+    init_u(u, x, y, Ny, Nx);
+    
     #ifdef PARALLEL
     // ****************************************************
     // Solve the system for the given parameters - parallel
 
-    // Measure the execution time
-    //std::clock_t c_start = std::clock();
     int nproc, iproc;
         
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &nproc);
     MPI_Comm_rank(MPI_COMM_WORLD, &iproc);
     
-    Merson_parallel(iproc, MPI_COMM_WORLD, u, x, y, Nx, Ny, dt, T_max, delta, std::string("parallel_") + filename);
+    Merson_parallel(iproc, MPI_COMM_WORLD, u, x, y, Ny, Nx, dt, T_max, delta, std::string("parallel_") + filename);
 
     MPI_Finalize();
     #endif
 
-    //std::clock_t c_end = std::clock();
-
-    //double time_elapsed_ms = 1000.0 * (c_end-c_start) / CLOCKS_PER_SEC;
-    //std::cout << "CPU time used (parallel): " << time_elapsed_ms << " ms\n";
-
+  
     #ifdef SERIAL
 
     // Set initial condition for u
-    init_u(u, x, y, Nx, Ny);
+    //init_u(u, x, y, Ny, Nx);
 
     // **************************************************
     // Solve the system for the given parameters - serial
-
-    //c_start = std::clock();
     
-    Merson(u, x, y, Nx, Ny, dt, T_max, delta, std::string("serial_") + filename);
-
-    //c_end = std::clock();
-
-    //time_elapsed_ms = 1000.0 * (c_end-c_start) / CLOCKS_PER_SEC;
-    //std::cout << "CPU time used (serial): " << time_elapsed_ms << " ms\n";
+    Merson(u, x, y, Ny, Nx, dt, T_max, delta, std::string("serial_") + filename);
 
     #endif
 
@@ -135,7 +122,7 @@ int main(int argc, char* argv[]) {
     delete[] y;
 
     // Delete u - first individual columns, rows after
-    dealloc(u, Nx);
+    dealloc(u, Ny);
 
 
     return 0;

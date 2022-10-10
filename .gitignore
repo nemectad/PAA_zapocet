@@ -4,3 +4,4 @@
 main
 *.dSYM
 test.cpp
+.vscode/settings.json
