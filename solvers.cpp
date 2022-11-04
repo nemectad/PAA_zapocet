@@ -1,6 +1,7 @@
 #include "solvers.h"
 #include "utilities.h"
 #include <cmath>
+
 //#define DEBUG
 
 
@@ -25,13 +26,45 @@ double F(double **u, int i, int j, double *x, double *y, int Ny, int Nx) {
     return Laplace_u(u, i, j, x, y);
 }
 
-double F_parallel(double *u, int i, int j, double dx, double dy, int Ny, int Nx) {
-    // Boundary condition
-    if (i == 0 || j == 0 || i == Nx-1 || j == Ny-1) {
-        return 0;
+double F_parallel(double *u, double *top, double *bottom, double *left, double *right,
+                  int i, int j, double dx, double dy, int Ny, int Nx, int i_global, int j_global,
+                  int Ny_global, int Nx_global) {
+    double res = 0;
+    bool x, y;
+    x = false;
+    y = false;
+
+    if (i_global == 0 || i_global == Ny_global-1) return 0.;
+    if (j_global == 0 || j_global == Nx_global-1) return 0.;
+    
+    if (j == 0) {
+        // Left boundary
+        res += (u[i*Nx + j+1] - 2*u[i*Nx + j] + left[i])/(dx*dx);
+        x = true;
+    } else if (j == Nx-1) {
+        // Right boundary
+        res += (right[i] - 2*u[i*Nx + j] + u[i*Nx + j-1])/(dx*dx);
+        x = true;
     }
-    // Laplace
-    return Laplace_u_parallel(u, i, j, dx, dy, Nx);
+    
+    if (i == 0) {
+        // Top boundary
+        res += (u[(i+1)*Nx + j] - 2*u[i*Nx + j] + top[j])/(dy*dy);
+        y = true;
+    } else if (i == Ny-1) {
+        // Bottom boundary
+        res += (bottom[j] - 2*u[i*Nx + j] + u[(i-1)*Nx + j])/(dy*dy);
+        y = true;
+    }
+
+    if (!y) {
+        res += (u[(i+1)*Nx + j] - 2*u[i*Nx + j] + u[(i-1)*Nx + j])/(dy*dy);
+    } 
+    if (!x) {
+        res += (u[i*Nx + j+1] - 2*u[i*Nx + j] + u[i*Nx + j-1])/(dx*dx);
+    }
+    return res;
+    
 }
 
 void update_u(double **u, double ***K, int Ny, int Nx) {
@@ -160,7 +193,7 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
                      int Ny, int Nx, double dt, double T, double delta, 
                      std::string filename) {
 
-    double t, tau, eps, E, omega, dx, dy;
+    double t, tau, eps, E, E_global, omega, dx, dy;
     bool last = false;
     tau = dt;
     std::ofstream f;
@@ -168,40 +201,40 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
     t = 0.0;
     int arr_len = Ny*Nx;
 
-    dx = x[1]-x[0];
-    dy = y[1]-y[0];
-
-
-
-    
-    // Allocate buffer matrices
-    double *K1 = new double[arr_len];
-    double *K2 = new double[arr_len];
-    double *K3 = new double[arr_len];
-    double *K4 = new double[arr_len];
-    double *K5 = new double[arr_len];
-    double *lap_u = new double[arr_len];
-    double *lap_k1 = new double[arr_len];
-    double *lap_k2 = new double[arr_len];
-    double *lap_k3 = new double[arr_len];
-    double *lap_k4 = new double[arr_len];
-
     // Root process
     const int root = 0;
     int m1, m2;
     int Ny_loc, Nx_loc;
+    
     // Separate the main domain into m1*m2 subdomains
     m1 = 2; // # of rows
     m2 = 2; // # of columns
-    // Local array length
-    int loc_arr_len = Ny*Nx/m1/m2;
     Ny_loc = Ny/m1;
     Nx_loc = Nx/m2;
+
+    // Local array length
+    int loc_arr_len = Ny*Nx/m1/m2;
+
+    dx = x[1]-x[0];
+    dy = y[1]-y[0];
+
+    // Allocate buffer matrices
+    double *K1 = new double[loc_arr_len];
+    double *K2 = new double[loc_arr_len];
+    double *K3 = new double[loc_arr_len];
+    double *K4 = new double[loc_arr_len];
+    double *K5 = new double[loc_arr_len];
+    double *lap_u = new double[loc_arr_len];
+    double *lap_k1 = new double[loc_arr_len];
+    double *lap_k2 = new double[loc_arr_len];
+    double *lap_k3 = new double[loc_arr_len];
+    double *lap_k4 = new double[loc_arr_len];
 
     // Declare shift integers to move on the computational grid
     int pos_i = (iproc/m1)*Ny_loc;
     int pos_j = (iproc%m2)*Nx_loc;
     int pos;
+    int shift_i;
 
     // Declare local u array -> flattened u
     double local_u[loc_arr_len];
@@ -251,85 +284,72 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
             }
         }
 
-        /*
+        /**********************
          * Set top, bottom, right and left buffers
         */
         
-        set_buffers(local_u, left, right, top, bottom);
+        set_buffers(local_u, left, right, top, bottom, Ny_loc, Nx_loc);
 
         /**********************
          * Share buffers 
         */
-        int proc_recv;
-
-        // iproc bottom to top of below
-        if (M1 + 1 < m1) {
-            proc_recv = iproc + m2;
-            MPI_Sendrecv(bottom, Nx_loc, MPI_DOUBLE, proc_recv, 0, 
-                         top, Nx_loc, MPI_DOUBLE, iproc, 0, comm, MPI_STATUS_IGNORE)
-        }
-        // iproc top to bottom of up
-        if (M1 - 1 >= 0) {
-            proc_recv = iproc - m2;
-            MPI_Sendrecv(top, Nx_loc, MPI_DOUBLE, proc_recv, 0, 
-                         bottom, Nx_loc, MPI_DOUBLE, iproc, 0, comm, MPI_STATUS_IGNORE)
-        }
-        // iproc left to right of left
-        if (M2 - 1 >= 0) {
-            proc_recv = iproc - 1;
-            MPI_Sendrecv(left, Ny_loc, MPI_DOUBLE, proc_recv, 0, 
-                         right, Ny_loc, MPI_DOUBLE, iproc, 0, comm, MPI_STATUS_IGNORE)
-        }
-        // iproc right to left of right
-        if (M2 + 1 < m2) {
-            proc_recv = iproc + 1;
-            MPI_Sendrecv(right, Ny_loc, MPI_DOUBLE, proc_recv, 0, 
-                         left, Ny_loc, MPI_DOUBLE, iproc, 0, comm, MPI_STATUS_IGNORE)
-        }
+        share_buffers(comm, m1, m2, M1, M2, iproc, top, bottom, left, right, Ny_loc, Nx_loc);
 
         /**********************
         Compute K1 coefficients
         */
 
         // Compute the values in each subdomain
-        for (int i = 0; i < Ny/m1; i++) {
-            int shift_i = i*(Nx/m2);
-            for (int j = 0; j < Ny/m2; j++) {  
-                local_lap[shift_i+j] = F_parallel(u_local, i + pos_i, j + pos_j, dx, dy, Nx, Ny);         
-                local_K[shift_i+j] = tau*local_lap[shift_i+j];
+        for (int i = 0; i < Ny_loc; i++) {
+            shift_i = i*Nx_loc;
+            for (int j = 0; j < Nx_loc; j++) {  
+                lap_u[shift_i+j] = F_parallel(local_u, top, bottom, left, right, i, j, dx, dy, Ny_loc, Nx_loc, i + pos_i, j + pos_j, Ny, Nx);         
+                K1[shift_i+j] = tau*lap_u[shift_i+j];
             }
         }
 
         /* -----------------
         Gather computed data
         */
-        if (iproc == root) {
+        /*if (iproc == root) {
             gather(local_K, local_lap, lap_u, K1, m1, m2, stride, root, comm);
         } else {
             // Other processess do nothing
             MPI_Gather(local_K, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
             MPI_Gather(local_lap, stride, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
         }
+        
 
         // Broadcasting values to other processes
         MPI_Bcast(K1, arr_len, MPI_DOUBLE, root, comm);
         MPI_Bcast(lap_u, arr_len, MPI_DOUBLE, root, comm);
+        */
         
+        /**********************
+         * Set top, bottom, right and left buffers
+        */
+        set_buffers(K1, left, right, top, bottom, Ny_loc, Nx_loc);
+
+        /**********************
+         * Share buffers 
+        */
+        share_buffers(comm, m1, m2, M1, M2, iproc, top, bottom, left, right, Ny_loc, Nx_loc);
+
         /**********************
         Compute K2 coefficients
         */
-        for (int i = 0; i < Nx/m1; i++) {
-            int shift_i = i*(Ny/m2);
+        for (int i = 0; i < Ny_loc; i++) {
+            shift_i = i*Nx_loc;
             for (int j = 0; j < Ny/m2; j++) {  
-                local_lap[shift_i+j] = F_parallel(K1, i + pos_i, j + pos_j, dx, dy, Nx, Ny);         
-                pos = (i+pos_i)*Ny + j + pos_j;
-                local_K[shift_i+j] = tau*(lap_u[pos] + local_lap[shift_i+j]/3);
+                lap_k1[shift_i+j] = F_parallel(K1, top, bottom, left, right, i, j, dx, dy, Ny_loc, Nx_loc, i + pos_i, j + pos_j, Ny, Nx);
+                K2[shift_i+j] = tau*(lap_u[shift_i+j] + lap_k1[shift_i+j]/3);
             }
         }
-
+        
         /* -----------------
         Gather computed data
         */
+        /*
         if (iproc == root) {
             gather(local_K, local_lap, lap_k1, K2, m1, m2, stride, root, comm);
         } else {
@@ -341,23 +361,33 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
         // Broadcasting values to other processes
         MPI_Bcast(K2, arr_len, MPI_DOUBLE, root, comm);
         MPI_Bcast(lap_k1, arr_len, MPI_DOUBLE, root, comm);
+        */
+
+        /**********************
+         * Set top, bottom, right and left buffers
+        */
+        set_buffers(K2, left, right, top, bottom, Ny_loc, Nx_loc);
+
+        /**********************
+         * Share buffers 
+        */
+        share_buffers(comm, m1, m2, M1, M2, iproc, top, bottom, left, right, Ny_loc, Nx_loc);
 
         /**********************
         Compute K3 coefficients
         */
-        for (int i = 0; i < Nx/m1; i++) {
-            int shift_i = i*(Ny/m2);
+        for (int i = 0; i < Ny_loc; i++) {
+            shift_i = i*Nx_loc;
             for (int j = 0; j < Ny/m2; j++) {  
-                local_lap[shift_i+j] = F_parallel(K2, i + pos_i, j + pos_j, dx, dy, Nx, Ny);         
-                pos = (i+pos_i)*Ny + j + pos_j;
-                local_K[shift_i+j] = tau*(lap_u[pos] + (lap_k1[pos]+local_lap[shift_i+j])/6);
+                lap_k2[shift_i+j] = F_parallel(K2, top, bottom, left, right, i, j, dx, dy, Ny_loc, Nx_loc, i + pos_i, j + pos_j, Ny, Nx);
+                K3[shift_i+j] = tau*(lap_u[shift_i+j] + (lap_k1[shift_i+j]+lap_k2[shift_i+j])/6);
             }
         }
 
         /* -----------------
         Gather computed data
         */
-        if (iproc == root) {
+        /*if (iproc == root) {
             gather(local_K, local_lap, lap_k2, K3, m1, m2, stride, root, comm);
         } else {
             // Other processess do nothing
@@ -368,24 +398,33 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
         // Broadcasting values to other processes
         MPI_Bcast(K3, arr_len, MPI_DOUBLE, root, comm);
         MPI_Bcast(lap_k2, arr_len, MPI_DOUBLE, root, comm);
+        */
 
+        /**********************
+         * Set top, bottom, right and left buffers
+        */
+        set_buffers(K3, left, right, top, bottom, Ny_loc, Nx_loc);
+
+        /**********************
+         * Share buffers 
+        */
+        share_buffers(comm, m1, m2, M1, M2, iproc, top, bottom, left, right, Ny_loc, Nx_loc);
 
         /**********************
         Compute K4 coefficients
         */
-        for (int i = 0; i < Nx/m1; i++) {
-            int shift_i = i*(Ny/m2);
+        for (int i = 0; i < Ny_loc; i++) {
+            shift_i = i*Nx_loc;
             for (int j = 0; j < Ny/m2; j++) {  
-                local_lap[shift_i+j] = F_parallel(K3, i + pos_i, j + pos_j, dx, dy, Nx, Ny);         
-                pos = (i+pos_i)*Ny + j + pos_j;
-                local_K[shift_i+j] = tau*(lap_u[pos] + (lap_k1[pos]+3*local_lap[shift_i+j])/8);
+                lap_k3[shift_i+j] = F_parallel(K3, top, bottom, left, right, i, j, dx, dy, Ny_loc, Nx_loc, i + pos_i, j + pos_j, Ny, Nx);
+                K4[shift_i+j] = tau*(lap_u[shift_i+j] + (lap_k1[shift_i+j]+3*lap_k3[shift_i+j])/8);
             }
         }
 
         /* -----------------
         Gather computed data
         */
-        if (iproc == root) {
+        /*if (iproc == root) {
             gather(local_K, local_lap, lap_k3, K4, m1, m2, stride, root, comm);
         } else {
             // Other processess do nothing
@@ -396,24 +435,33 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
         // Broadcasting values to other processes
         MPI_Bcast(K4, arr_len, MPI_DOUBLE, root, comm);
         MPI_Bcast(lap_k3, arr_len, MPI_DOUBLE, root, comm);
+        */
+        /**********************
+         * Set top, bottom, right and left buffers
+        */
+        set_buffers(K4, left, right, top, bottom, Ny_loc, Nx_loc);
+
+        /**********************
+         * Share buffers 
+        */
+        share_buffers(comm, m1, m2, M1, M2, iproc, top, bottom, left, right, Ny_loc, Nx_loc);
 
         /**********************
         Compute K5 coefficients
         */
         for (int i = 0; i < Nx/m1; i++) {
-            int shift_i = i*(Ny/m2);
+            shift_i = i*Nx_loc;
             for (int j = 0; j < Ny/m2; j++) {  
-                local_lap[shift_i+j] = F_parallel(K4, i + pos_i, j + pos_j, dx, dy, Nx, Ny);         
-                pos = (i+pos_i)*Ny + j + pos_j;
-                local_K[shift_i+j] = tau*(lap_u[pos] + 0.5*lap_k1[pos]-1.5*lap_k3[pos] +
-                                     2*local_lap[shift_i+j]);
+                lap_k4[shift_i+j] = F_parallel(K4, top, bottom, left, right, i, j, dx, dy, Ny_loc, Nx_loc, i + pos_i, j + pos_j, Ny, Nx);
+                K5[shift_i+j] = tau*(lap_u[shift_i+j] + 0.5*lap_k1[shift_i+j]-1.5*lap_k3[shift_i+j] +
+                                     2*lap_k4[shift_i+j]);
             }
         }
 
         /* -----------------
         Gather computed data
         */
-        if (iproc == root) {
+        /*if (iproc == root) {
             gather(local_K, local_lap, lap_k4, K5, m1, m2, stride, root, comm);
         } else {
             // Other processess do nothing
@@ -424,10 +472,13 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
         // Broadcasting values to other processes
         MPI_Bcast(K5, arr_len, MPI_DOUBLE, root, comm);
         MPI_Bcast(lap_k4, arr_len, MPI_DOUBLE, root, comm);
+        */
 
         /* ************************
         Compute errors & write data
         */ 
+
+        /*
         if (iproc == root) {
             // Declare array of K's
             double *K[5] = {K1, K2, K3, K4, K5};
@@ -444,11 +495,41 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
             tau = pow(delta/E, 0.2)*omega*tau;
 
         } 
+        */
+        // Declare array of K's
+        double *K[5] = {K1, K2, K3, K4, K5};
+
+        // Compute error in each subdomain, find max error w/ Reduce, bcast error
+        E = max_in_arr(K, loc_arr_len);
+        MPI_Reduce(&E, &E_global, 1, MPI_DOUBLE, MPI_MAX, root, comm);
+        MPI_Bcast(&E_global, 1, MPI_DOUBLE, root, comm);
+            
+        // Update solution in each subdomain
+        if(E_global < delta) {
+            update_u_contiguous(local_u, K, loc_arr_len); 
+            t += tau;
+
+            // Gather u in each subdomain & write to file
+            if (iproc == root) {
+                //gather(local_K, local_lap, lap_k4, K5, m1, m2, stride, root, comm);
+                collect_and_write_u(comm, local_u, m1, m2, loc_arr_len, t, x, y, Ny, Nx, root, filename, &f);
+            } else {
+                // Other processess do nothing
+                MPI_Gather(local_u, loc_arr_len, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
+            }
+        }
+
+        // Compute new value of the timestep
+        tau = pow(delta/E_global, 0.2)*omega*tau;
+
+        /*if (iproc == root) {
+            write_contiguous_data(u_local, t, x, y, Nx, Ny, filename, &f);
+        } */
 
         // Broadcast updated values
-        MPI_Bcast(u_local, arr_len, MPI_DOUBLE, root, comm);
-        MPI_Bcast(&t, 1, MPI_DOUBLE, root, comm);
-        MPI_Bcast(&tau, 1, MPI_DOUBLE, root, comm);
+        //MPI_Bcast(u_local, arr_len, MPI_DOUBLE, root, comm);
+        //MPI_Bcast(&t, 1, MPI_DOUBLE, root, comm);
+        //MPI_Bcast(&tau, 1, MPI_DOUBLE, root, comm);
         MPI_Bcast(&last, 1, MPI_C_BOOL, root, comm);
 
 
@@ -458,10 +539,12 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
             
         #ifdef DEBUG
 
+
         if (iproc == 0) {
-            std::cout << "E = " << E << std::endl;
+            std::cout << "E = " << E_global << std::endl;
             std::cout << "t = " << t << " tau = " << tau << " last = " << last << std::endl;
         }   
+        //break;
     
         iter++;
         if (iter > 50)

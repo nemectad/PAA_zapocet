@@ -23,6 +23,10 @@ void gather(double *local_K, double *local_lap, double *lap, double *K, int m1,
             int m2, int count_send, int root, MPI_Comm comm);
 void set_buffers(double *main_arr, double *left, double *right, double *top, 
                  double *bottom, int Ny, int Nx);
-void share_buffers(double)
+void share_buffers(MPI_Comm comm, int m1, int m2, int M1, int M2, int iproc, double *top, 
+                   double *bottom, double *left, double *right, int Ny_loc, int Nx_loc);
+void collect_and_write_u(MPI_Comm comm, double *local_u, int m1, int m2, 
+                         int count_send, double t, double *x, double *y, int Ny, 
+                         int Nx, int root, std::string filename, std::ofstream *f);
 
 #endif

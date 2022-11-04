@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
     
     a = -1;
     b = 1;
-    Nx = 25;
+    Nx = 50;
     Ny = 50;
     dt = 0.02;
     T_max = 0.3;
