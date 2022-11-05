@@ -1,18 +1,23 @@
-//#include <mpi.h>
 #include <iostream>
 #include "solvers.h"
 #include "utilities.h"
 #include <cmath>
 #include <stdlib.h>
 #include <fstream>
+#include <ctime>
+#include <mpi.h>
 
 // Uncomment for the analytical model
 //#define TEST
+// Uncomment for serial code
+//#define SERIAL
+// Uncomment for parallel code
+#define PARALLEL
 
-void init_u(double **u, double *x, double *y, int Nx, int Ny) {
-    for (int i = 0; i < Nx; i++) {
-        for (int j = 0; j < Ny; j++) {
-            u[i][j] = signum(-sqrt(x[i]*x[i] + y[j]*y[j]) + 0.1)+1;
+void init_u(double **u, double *x, double *y, int Ny, int Nx) {
+    for (int i = 0; i < Ny; i++) {
+        for (int j = 0; j < Nx; j++) {
+            u[i][j] = signum(-sqrt(y[i]*y[i] + x[j]*x[j]) + 0.1)+1;
         }
     }
 }
@@ -24,7 +29,7 @@ int main(int argc, char* argv[]) {
 
     // Parameters for spatial grid
     int Nx, Ny;
-    double a, b;
+    double a, b, dx, dy;
     // Parameters for temporal grid
     double dt, T_max;
     
@@ -33,12 +38,15 @@ int main(int argc, char* argv[]) {
     Nx = 50;
     Ny = 50;
     dt = 0.02;
-    T_max = 0.1;
+    T_max = 0.3;
     filename = "data.txt";
 
     // Spatial grid
     double *x = new double[Nx];
     double *y = new double[Ny];
+
+    // Solution grid - pointer array for column representation of solution u
+    double **u = new double*[Ny];
 
     // Error treshold
     double delta = 0.0001;
@@ -46,25 +54,54 @@ int main(int argc, char* argv[]) {
     set_grid(x, a, b, Nx);
     set_grid(y, a, b, Ny);
 
-    // Solution grid - pointer array for column representation of solution u
-    double **u = new double*[Nx];
-
     // Allocate u dynamically according to the grid size
-    alloc(u, Nx, Ny);
+    alloc(u, Ny, Nx);
+
+    
 
     // Set initial condition for u
-    init_u(u, x, y, Nx, Ny);
+    init_u(u, x, y, Ny, Nx);
     
-    // Solve the system for the given parameters
-    Merson_parallel(argc, argv, u, x, y, Nx, Ny, dt, T_max, delta, std::string("parallel_") + filename);
+    #ifdef PARALLEL
+    // ****************************************************
+    // Solve the system for the given parameters - parallel
 
+    int nproc, iproc;
+        
+    MPI_Init(&argc, &argv);
+    MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+    MPI_Comm_rank(MPI_COMM_WORLD, &iproc);
+    if(nproc%2 != 0) {
+        std::cout << "Program is meant to run with odd number of processes!" << std::endl;
+    }
+    
+    Merson_parallel(iproc, MPI_COMM_WORLD, u, x, y, Ny, Nx, dt, T_max, delta, std::string("parallel_") + filename);
+
+    MPI_Finalize();
+    #endif
+
+  
+    #ifdef SERIAL
+    // ****************************************************
+    // Solve the system for the given parameters - serial
+
+    // Set initial condition for u
+    //init_u(u, x, y, Ny, Nx);
+
+    // **************************************************
+    // Solve the system for the given parameters - serial
+    
+    Merson(u, x, y, Ny, Nx, dt, T_max, delta, std::string("serial_") + filename);
+
+    #endif
 
     // Comparison with the analytical model
     #ifdef TEST
 
     // Computation variables
     int N = 10;
-    double *t = new double[N+1];
+    double t = 0;
+    dt = T_max/N;
     init_u(u, x, y, Nx, Ny);
 
     // Write initial data
@@ -73,15 +110,15 @@ int main(int argc, char* argv[]) {
     test_f.open(test_filename, std::ios::out | std::ios_base::app);
     test_f << Nx << "\t" << Ny << "\n";
     test_f.close();
-    write_data(u, t[0], x, y, Nx, Ny, test_filename, &test_f);
+    write_data(u, t, x, y, Nx, Ny, test_filename, &test_f);
 
     // Main computation cycle
     for (int i = 1; i <= N; i++) {
-        t[i] = t[i-1] + T_max/N;
-        convolution_in_t(Nx, Ny, x, y, u, t[i]);
-        write_data(u, t[i], x, y, Nx, Ny, test_filename, &test_f);
+        t = t + dt;
+        convolution_in_t(Nx, Ny, x, y, u, t);
+        write_data(u, t, x, y, Nx, Ny, test_filename, &test_f);
     }
-    delete[] t;
+    
     #endif
 
 
@@ -90,7 +127,7 @@ int main(int argc, char* argv[]) {
     delete[] y;
 
     // Delete u - first individual columns, rows after
-    dealloc(u, Nx);
+    dealloc(u, Ny);
 
 
     return 0;
