@@ -10,9 +10,9 @@
 // Uncomment for the analytical model
 //#define TEST
 // Uncomment for serial code
-#define SERIAL
+//#define SERIAL
 // Uncomment for parallel code
-//#define PARALLEL
+#define PARALLEL
 
 void init_u(double **u, double *x, double *y, int Ny, int Nx) {
     for (int i = 0; i < Ny; i++) {
@@ -71,6 +71,9 @@ int main(int argc, char* argv[]) {
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &nproc);
     MPI_Comm_rank(MPI_COMM_WORLD, &iproc);
+    if(nproc%2 != 0) {
+        std::cout << "Program is meant to run with odd number of processes!" << std::endl;
+    }
     
     Merson_parallel(iproc, MPI_COMM_WORLD, u, x, y, Ny, Nx, dt, T_max, delta, std::string("parallel_") + filename);
 
@@ -79,6 +82,8 @@ int main(int argc, char* argv[]) {
 
   
     #ifdef SERIAL
+    // ****************************************************
+    // Solve the system for the given parameters - serial
 
     // Set initial condition for u
     //init_u(u, x, y, Ny, Nx);

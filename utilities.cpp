@@ -76,46 +76,6 @@ void write_contiguous_data(double *u, double t, double *x, double *y, int Nx,
     f->close();
 }
 
-// MODIFY!!!!
-void collect_buffers(double *lap, double *K, double *buffer_lap, double *buffer_K, int M1, int M2, int Ny, int Nx) {
-    for (int m1 = 0; m1 < M1; m1++) {
-        for (int i = 0; i < Nx/M1; i++) {
-            for (int m2 = 0; m2 < M2; m2++) {
-                for (int j = 0; j < Ny/M2; j++) {
-                    lap[i*Ny + j + m2*Ny/M2 + m1*Nx/M1*Ny] = buffer_lap[i*Ny/M2 + j + m1*Ny*(Nx/M1) + m2*(Nx/M1)*(Ny/M2)];
-                    K[i*Ny + j + m2*Ny/M2 + m1*Nx/M1*Ny] = buffer_K[i*Ny/M2 + j + m1*Ny*(Nx/M1) + m2*(Nx/M1)*(Ny/M2)];
-                }
-            }
-        }
-    }
-}
-
-void gather(double *local_K, double *local_lap, double *lap, double *K, int m1, 
-            int m2, int count_send, int root, MPI_Comm comm) {
-    /**
-     * Custom gather function to gather data from all the processes to the root 
-     * process.
-     * 
-     */
-
-    int size = m1*m2;
-    int count_recv = count_send;
-    // Allocate buffers the size of the computed data
-    double *buffer_K = new double[size*count_send];
-    double *buffer_lap = new double[size*count_send];
-
-    // Gather all the data into buffers at root
-    MPI_Gather(local_K, count_send, MPI_DOUBLE, buffer_K, count_recv, MPI_DOUBLE, root, comm);
-    MPI_Gather(local_lap, count_send, MPI_DOUBLE, buffer_lap, count_recv, MPI_DOUBLE, root, comm);
-    
-    // Collect the flattened buffers
-    //collect_buffers(lap, K, buffer_lap, buffer_K, m1, m2, Ny, Nx);
-
-    // Release memory
-    delete[] buffer_K;
-    delete[] buffer_lap;
-}
-
 void share_buffers(MPI_Comm comm, int m1, int m2, int M1, int M2, int iproc, double *top, 
         double *bottom, double *left, double *right, int Ny_loc, int Nx_loc) {
 
@@ -123,53 +83,18 @@ void share_buffers(MPI_Comm comm, int m1, int m2, int M1, int M2, int iproc, dou
     int proc_sender;
 
     // set temporary buffers
-    //double left_temp[Ny_loc];
     double right_temp[Ny_loc];
     double top_temp[Nx_loc];
-    //double bottom_temp[Nx_loc];
 
     for (int i = 0; i < Ny_loc; i++) {
-        //left_temp[i] = left[i];
         right_temp[i] = right[i];
     }
     for (int i = 0; i < Nx_loc; i++) {
         top_temp[i] = top[i];
-        //bottom_temp[i] = bottom[i];
     }
 
-    // iproc bottom to top of below
-    /*
-    if (M1 + 1 < m1) {
-        proc_recv = iproc + m2;
-        MPI_Sendrecv(bottom, Nx_loc, MPI_DOUBLE, proc_recv, 0, 
-                        top, Nx_loc, MPI_DOUBLE, iproc, 0, comm, MPI_STATUS_IGNORE);
-    }
-    std::cout << "DONE comm 1" << std::endl;
-    // iproc top to bottom of up
-    if (M1 - 1 >= 0) {
-        proc_recv = iproc - m2;
-        MPI_Sendrecv(top, Nx_loc, MPI_DOUBLE, proc_recv, 1, 
-                        bottom, Nx_loc, MPI_DOUBLE, iproc, 1, comm, MPI_STATUS_IGNORE);
-    }
-    std::cout << "DONE comm 2" << std::endl;
-    // iproc left to right of left
-    if (M2 - 1 >= 0) {
-        proc_recv = iproc - 1;
-        MPI_Sendrecv(left, Ny_loc, MPI_DOUBLE, proc_recv, 2, 
-                        right, Ny_loc, MPI_DOUBLE, iproc, 2, comm, MPI_STATUS_IGNORE);
-    }
-    std::cout << "DONE comm 3" << std::endl;
-    // iproc right to left of right
-    if (M2 + 1 < m2) {
-        proc_recv = iproc + 1;
-        MPI_Sendrecv(right, Ny_loc, MPI_DOUBLE, proc_recv, 3, 
-                        left, Ny_loc, MPI_DOUBLE, iproc, 3, comm, MPI_STATUS_IGNORE);
-    }
-    std::cout << "DONE comm 4" << std::endl;
-    */
-
-    // iproc bottom to top of below
     
+    // iproc bottom to top of below    
     if (M1 + 1 < m1) {
         proc_receiver = iproc + m2;
         MPI_Send(bottom, Nx_loc, MPI_DOUBLE, proc_receiver, 0, comm);
@@ -178,9 +103,8 @@ void share_buffers(MPI_Comm comm, int m1, int m2, int M1, int M2, int iproc, dou
         proc_sender = iproc - m2;
         MPI_Recv(top, Nx_loc, MPI_DOUBLE, proc_sender, 0, comm, MPI_STATUS_IGNORE);
     }
-    //std::cout << "DONE comm 1" << std::endl;
-    // iproc top to bottom of up
     
+    // iproc top to bottom of up
     if (M1 - 1 >= 0) {
         proc_receiver = iproc - m2;
         MPI_Send(top_temp, Nx_loc, MPI_DOUBLE, proc_receiver, 0, comm);
@@ -189,9 +113,8 @@ void share_buffers(MPI_Comm comm, int m1, int m2, int M1, int M2, int iproc, dou
         proc_sender = iproc + m2;
         MPI_Recv(bottom, Nx_loc, MPI_DOUBLE, proc_sender, 0, comm, MPI_STATUS_IGNORE);
     }
-    //std::cout << "DONE comm 2" << std::endl;
+    
     // iproc left to right of left
-
     if (M2 - 1 >= 0) {
         proc_receiver = iproc - 1;
         MPI_Send(left, Ny_loc, MPI_DOUBLE, proc_receiver, 0, comm);
@@ -200,9 +123,8 @@ void share_buffers(MPI_Comm comm, int m1, int m2, int M1, int M2, int iproc, dou
         proc_sender = iproc + 1;
         MPI_Recv(right, Ny_loc, MPI_DOUBLE, proc_sender, 0, comm, MPI_STATUS_IGNORE);
     }
-    //std::cout << "DONE comm 3" << std::endl;
-    // iproc right to left of right
 
+    // iproc right to left of right
     if (M2 + 1 < m2) {
         proc_receiver = iproc + 1;
         MPI_Send(right_temp, Ny_loc, MPI_DOUBLE, proc_receiver, 0, comm);
@@ -211,59 +133,8 @@ void share_buffers(MPI_Comm comm, int m1, int m2, int M1, int M2, int iproc, dou
         proc_sender = iproc - 1;
         MPI_Recv(left, Ny_loc, MPI_DOUBLE, proc_sender, 0, comm, MPI_STATUS_IGNORE);
     }
-    //std::cout << "DONE comm 4" << std::endl;
     
-    MPI_Barrier(comm);
-
-    /*
-    if (M1 + 1 < m1 || M1 - 1 >= 0) {
-        if (M1 - 1 >= 0) {
-            proc_recv = iproc - m2;
-            MPI_Sendrecv(top, Nx_loc, MPI_DOUBLE, proc_recv, 1, 
-                        bottom, Nx_loc, MPI_DOUBLE, iproc, 1, comm, MPI_STATUS_IGNORE);
-        } else if (M1 + 1 < m1) {
-            proc_recv = iproc + m2;
-            MPI_Sendrecv(bottom, Nx_loc, MPI_DOUBLE, proc_recv, 0, 
-                            top, Nx_loc, MPI_DOUBLE, iproc, 0, comm, MPI_STATUS_IGNORE);
-        }
-    }
-    std::cout << "DONE comm 1" << std::endl;
-    */
-
-    // iproc top to bottom of up
-    /*if (M1 + 1 < m1 || M1 - 1 >= 0) {
-        if (M1 + 1 < m1) {
-            proc_recv = iproc - m2;
-            MPI_Sendrecv(top, Nx_loc, MPI_DOUBLE, proc_recv, 1, 
-                            bottom, Nx_loc, MPI_DOUBLE, iproc, 1, comm, MPI_STATUS_IGNORE);
-        } else if (M1 - 1 >= 0) {
-
-        }
-    }
-    std::cout << "DONE comm 2" << std::endl; */
-    // iproc left to right of left
-    /*
-    if (M2 - 1 >= 0 || M2 + 1 < m2) {
-        if (M2 - 1 >= 0) { 
-            proc_recv = iproc - 1;
-            MPI_Sendrecv(left, Ny_loc, MPI_DOUBLE, proc_recv, 2, 
-                        right, Ny_loc, MPI_DOUBLE, iproc, 2, comm, MPI_STATUS_IGNORE);
-        } else if (M2 + 1 < m2) {
-            proc_recv = iproc + 1;
-            MPI_Sendrecv(right, Ny_loc, MPI_DOUBLE, proc_recv, 3, 
-                        left, Ny_loc, MPI_DOUBLE, iproc, 3, comm, MPI_STATUS_IGNORE);
-        }
-    }
-    std::cout << "DONE comm 3" << std::endl;
-    */
-
-    // iproc right to left of right
-    /*if (M2 + 1 < m2 || M2 - 1 >= 0) {
-        proc_recv = iproc + 1;
-        MPI_Sendrecv(right, Ny_loc, MPI_DOUBLE, proc_recv, 3, 
-                        left, Ny_loc, MPI_DOUBLE, iproc, 3, comm, MPI_STATUS_IGNORE);
-    }
-    std::cout << "DONE comm 4" << std::endl;*/
+    //MPI_Barrier(comm);
 }
 
 void set_buffers(double *main_arr, double *left, double *right, double *top, double *bottom, int Ny, int Nx) {
@@ -293,12 +164,7 @@ void collect_and_write_u(MPI_Comm comm, double *local_u, int m1, int m2,
     
     f->open(filename, std::ios::out | std::ios_base::app);
     *f << t << "\n";
-    /*for (int i = 0; i < Ny; i++) {
-        for (int j = 0; j < Nx; j++) {
-            *f << y[i] << "\t" << x[j] << "\t" << u[i*Ny + j] << "\n";
-        }
-    }
-    */
+
     for (int M1 = 0; M1 < m1; M1++) {
         for (int i = 0; i < Ny_loc; i++) {
             for (int M2 = 0; M2 < m2; M2++) {
