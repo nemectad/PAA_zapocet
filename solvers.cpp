@@ -83,12 +83,14 @@ void update_u_contiguous(double *u, double **K, int arr_len) {
 
 void Merson(double **u, double *x, double *y, int Ny, int Nx, double dt, 
             double T, double delta, std::string filename) {
-    double t, tau, eps, E, omega;
+    double t, tau, eps, E, omega, t_write, t_write_step;
     bool last = false;
     tau = dt;
     std::ofstream f;
     omega = 0.8;
     t = 0.0;
+    t_write = 0.05;
+    t_write_step = 0.05;
     
     double **lap_u = new double*[Ny];
     double **lap_k1 = new double*[Ny];
@@ -166,7 +168,10 @@ void Merson(double **u, double *x, double *y, int Ny, int Nx, double dt,
         if(E < delta) {
             update_u(u, K, Ny, Nx); 
             t += tau;
-            write_data(u, t, x, y, Ny, Nx, filename, &f);
+            if (t >= t_write) {
+                write_data(u, t, x, y, Ny, Nx, filename, &f);
+                t_write += t_write_step;
+            }
         }
         
         tau = pow(delta/E, 0.2)*omega*tau;
@@ -193,12 +198,14 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
                      int Ny, int Nx, double dt, double T, double delta, 
                      std::string filename) {
 
-    double t, tau, eps, E, E_global, omega, dx, dy;
+    double t, tau, eps, E, E_global, omega, dx, dy, t_write, t_write_step;
     bool last = false;
     tau = dt;
     std::ofstream f;
     omega = 0.8;
     t = 0.0;
+    t_write = 0.05;
+    t_write_step = 0.05;
     int arr_len = Ny*Nx;
     int size = 0;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -286,7 +293,6 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
         /**********************
          * Set top, bottom, right and left buffers
         */
-        
         set_buffers(local_u, left, right, top, bottom, Ny_loc, Nx_loc);
 
         /**********************
@@ -406,12 +412,15 @@ void Merson_parallel(int iproc, MPI_Comm comm, double **u, double *x, double *y,
             t += tau;
             
             // Gather u in each subdomain & write to file
-            if (iproc == root) {
-                collect_and_write_u(comm, local_u, m1, m2, loc_arr_len, t, x, y, Ny, Nx, root, filename, &f);
-            } else {
-                // Other processess do nothing
-                MPI_Gather(local_u, loc_arr_len, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
-            }
+            if (t >= t_write) {
+                if (iproc == root) {
+                    collect_and_write_u(comm, local_u, m1, m2, loc_arr_len, t, x, y, Ny, Nx, root, filename, &f);
+                } else {
+                    // Other processess do nothing
+                    MPI_Gather(local_u, loc_arr_len, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, root, comm);
+                }
+                t_write += t_write_step;
+            } 
             
         }
 

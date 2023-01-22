@@ -133,8 +133,6 @@ void share_buffers(MPI_Comm comm, int m1, int m2, int M1, int M2, int iproc, dou
         proc_sender = iproc - 1;
         MPI_Recv(left, Ny_loc, MPI_DOUBLE, proc_sender, 0, comm, MPI_STATUS_IGNORE);
     }
-    
-    //MPI_Barrier(comm);
 }
 
 void set_buffers(double *main_arr, double *left, double *right, double *top, double *bottom, int Ny, int Nx) {
